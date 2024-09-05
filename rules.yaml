@@ -1,8 +1,0 @@
-- rule: Filter out things
-  match: ^https://example.com/feed.xml$
-  exclude:
-    matchTitle: true
-    matchContent: true
-    regexes:
-      - "unwanted phrase regex"
-      - "another unwanted phrase regex"

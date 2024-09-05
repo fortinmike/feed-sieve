@@ -25,13 +25,19 @@ public class MainController : ControllerBase
     var decodedUrl = HttpUtility.UrlDecode(url);
     var feed = await FetchFeed(decodedUrl);
 
-    var rules = LoadRules(); // Load rules from YAML
+    var rules = LoadFilteringRules(); // Load rules from YAML
 
+    var rawItems = feed.Items.ToList();
+    var filteredItems = rawItems.ToList();
     foreach (var rule in rules)
     {
-      if (Regex.IsMatch(decodedUrl, rule.Match, RegexOptions.IgnoreCase))
-        ApplyRule(feed, rule);
+      if (Regex.IsMatch(decodedUrl, rule.Feed, RegexOptions.IgnoreCase))
+        filteredItems = ApplyRule(filteredItems, rule);
     }
+
+    _logger.LogInformation(
+      $"Filtered feed '{decodedUrl}' ({rawItems.Count - filteredItems.Count} items filtered out)."
+    );
 
     var rss = GenerateRss(feed);
     return Content(rss, "application/rss+xml");
@@ -56,9 +62,9 @@ public class MainController : ControllerBase
     return stringWriter.ToString();
   }
 
-  private List<Rule> LoadRules()
+  private List<Rule> LoadFilteringRules()
   {
-    var yaml = System.IO.File.ReadAllText("rules.yaml");
+    var yaml = System.IO.File.ReadAllText("filtering.yaml");
     var deserializer = new DeserializerBuilder()
       .WithNamingConvention(CamelCaseNamingConvention.Instance)
       .Build();
@@ -66,39 +72,34 @@ public class MainController : ControllerBase
     return deserializer.Deserialize<List<Rule>>(yaml);
   }
 
-  private void ApplyRule(SyndicationFeed feed, Rule rule)
+  private List<SyndicationItem> ApplyRule(List<SyndicationItem> items, Rule rule)
   {
-    var kept = feed
-      .Items.Where(item =>
+    return items
+      .Where(item =>
       {
         bool exclude = false;
 
         var itemName = item.Title.Text;
 
-        if (rule.Exclude.MatchTitle)
-          exclude |= Match("title", rule, itemName, item.Title.Text);
+        if (rule.Match == "title" || rule.Match == "all")
+          exclude |= Match("title", itemName, rule, item.Title.Text);
 
-        if (rule.Exclude.MatchContent)
-          exclude |= Match("description", rule, itemName, item.Summary.Text);
+        if (rule.Match == "content" || rule.Match == "all")
+          exclude |= Match("content", itemName, rule, item.Summary.Text);
 
         return !exclude;
       })
       .ToList();
-
-    feed.Items = kept;
   }
 
-  private bool Match(string itemTitle, Rule rule, string kind, string text)
+  private bool Match(string kind, string itemTitle, Rule rule, string text)
   {
-    foreach (var regex in rule.Exclude.Regexes)
+    if (Regex.IsMatch(text, rule.Regex, RegexOptions.IgnoreCase))
     {
-      if (Regex.IsMatch(text, regex, RegexOptions.IgnoreCase))
-      {
-        _logger.LogInformation(
-          $"Excluded item '{itemTitle}' from feed matching '{rule.Match}' due to {kind} match with regex '{regex}'."
-        );
-        return true;
-      }
+      _logger.LogInformation(
+        $"Excluded item '{itemTitle}' from feed matching '{rule.Feed}' due to {kind} match with regex '{rule.Regex}'."
+      );
+      return true;
     }
     return false;
   }
