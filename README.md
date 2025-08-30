@@ -15,6 +15,10 @@ A simple self-hosted RSS feed proxy that filters out unwanted items. It's useful
 - Simple & no database; feeds are processed on-the-fly and cached when nothing changed since the last source fetch
 - More coming soon...
 
+## Editing Rules
+
+Coming soon...
+
 ## Dev Setup
 
 - Install the .NET SDK (see required version in `feed-sieve.csproj`).
