@@ -1,7 +1,5 @@
 using System.ServiceModel.Syndication;
 using System.Text.RegularExpressions;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 public class Filter
 {
@@ -16,7 +14,7 @@ public class Filter
     {
         // Loading rules is a very fast operation and doing it here ensures
         // that we can modify the rules and they will be applied instantly.
-        var rules = LoadRules("ruleset.default.yaml");
+        var rules = Rules.Load("ruleset.default.yaml");
 
         var filteredItems = items.ToList();
         foreach (var rule in rules)
@@ -26,13 +24,6 @@ public class Filter
         }
 
         return filteredItems;
-    }
-
-    private List<Rule> LoadRules(string path)
-    {
-        var yaml = File.ReadAllText(path);
-        var deserializer = new DeserializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance).Build();
-        return deserializer.Deserialize<List<Rule>>(yaml);
     }
 
     private List<SyndicationItem> ApplyRule(List<SyndicationItem> items, Rule rule)
