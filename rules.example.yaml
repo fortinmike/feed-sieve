@@ -1,0 +1,4 @@
+- rule: Ads and Sponsors
+  feed: .*
+  match: title
+  regex: \b(ad|advertisement|sponsor|sponsored)\b
