@@ -1,4 +1,3 @@
 @host = http://localhost:6677
 
-GET {{host}}/feed?url=http://eclecticlight.co/feed/
-Accept: application/json
+GET {{host}}/filter?url=http://eclecticlight.co/feed/
