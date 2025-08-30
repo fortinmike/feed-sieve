@@ -1,0 +1,39 @@
+- rule: Ads and Sponsors
+  feed: .*
+  match: title
+  regex: \b(ad|advertisement|sponsor|sponsored)\b
+
+- rule: Deals and Promos
+  feed: .*
+  match: title
+  regex: \b(deals?|promos?|promotions?)\b
+
+- rule: Lawsuits and Legal Stuff
+  feed: .*
+  match: title
+  regex: \b(lawsuits?|lawyers?)\b
+
+- rule: Podcasts
+  feed: .*
+  match: title
+  regex: \b(podcasts?)\b
+
+- rule: US Mobile Carriers
+  feed: .*
+  match: title
+  regex: \b(t-mobile|at\&t|verizon)\b
+
+- rule: Fortnite
+  feed: .*
+  match: title
+  regex: \b(fortnite)\b
+
+- rule: Eclectic Light Riddles
+  feed: http://eclecticlight.co/feed/
+  match: title
+  regex: \b(riddles?)\b
+
+- rule: TEMP TEST
+  feed: http://eclecticlight.co/feed/
+  match: title
+  regex: \b(paintings?)\b
