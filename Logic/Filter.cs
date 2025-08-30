@@ -16,7 +16,7 @@ public class Filter
     {
         // Loading rules is a very fast operation and doing it here ensures
         // that we can modify the rules and they will be applied instantly.
-        var rules = LoadRules("rules.yaml");
+        var rules = LoadRules("ruleset.default.yaml");
 
         var filteredItems = items.ToList();
         foreach (var rule in rules)
