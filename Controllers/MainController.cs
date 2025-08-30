@@ -1,10 +1,6 @@
 using System.ServiceModel.Syndication;
-using System.Text.RegularExpressions;
 using System.Web;
-using System.Xml;
 using Microsoft.AspNetCore.Mvc;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 [ApiController]
 [Route("/")]
