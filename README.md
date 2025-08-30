@@ -1,12 +1,25 @@
 # feed-sieve
 
-A simple self-hosted RSS feed proxy that filters out unwanted items.
+A simple self-hosted RSS feed proxy that filters out unwanted items. It's useful in the following scenarios:
 
-## Native Dev Setup
+- A feed is great but has too many sponsored posts, ads and other uninteresting stuff
+- A site sometimes writes about things you don't want to hear about
+- A bigger site offers a single feed combining all categories but only some of the categories are interesting to you
+- Whatever else you can think of!
 
-- Install .NET (see required version in `feed-sieve.csproj`)
+## Features
+
+- Setup simple rules to filter out anything you don't want to end up in your reader app
+- Match item title or content (or both) with regexes for maximum flexibility
+- Works will all RSS readers; just subscribe to feed-sieve's filter URL instead of the original feed URL
+- Simple & no database; feeds are processed on-the-fly and cached when nothing changed since the last source fetch
+- More coming soon...
+
+## Dev Setup
+
+- Install the .NET SDK (see required version in `feed-sieve.csproj`).
 - Duplicate the `ruleset.example.yaml` file as `ruleset.default.yaml` (this will be the ruleset you'll be testing with)
-- Run `dotnet watch` to start the server and watch for changes
+- Run `dotnet watch` to start the server and watch for changes.
 
 ## Manual Publishing
 
@@ -14,15 +27,9 @@ To produce a build that can be deployed on bare metal run the following command:
 
     rm -rf publish && dotnet publish -c Release --output publish
 
-## Running in Docker (in this cloned project)
-
-Running this command will build the image using the project's Dockerfile and start the `feed-sieve` container which can be reached on port 6677.
-
-    docker compose up --build
-
 ## Running in Docker (on any machine)
 
-This project is not on Docker Hub (yet). You can still run it easily with a simple configuration that refers to this repo directly. The suggested method is to create a `docker-compose.yml` file:
+This project is not on Docker Hub (yet). You can still use it easily with a simple configuration that refers to this repo directly and builds the Docker image on-the-fly before creating and starting up the container. The suggested method is to create a `docker-compose.yml` file:
 
     name: feed-sieve
     services:
@@ -37,4 +44,10 @@ This project is not on Docker Hub (yet). You can still run it easily with a simp
 
 Then run `docker compose up` in the directory where the file is located.
 
-If you just want to start the server without the convenience of Docker Compose, you can convert the suggested configuration to a `docker run` command manually or using a number of online tools.
+If you just want to start the server without the convenience of Docker Compose, you can probably convert the suggested configuration to a `docker run` command manually or using a number of online tools.
+
+## Running in Docker (if you cloned this repo)
+
+Running this command will build the image using the project's Dockerfile and start the `feed-sieve` container which can be reached on port 6677.
+
+    docker compose up --build
