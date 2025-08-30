@@ -22,8 +22,8 @@ public class MainController : ControllerBase
         return Content("feed-sieve is running!", "text/html");
     }
 
-    [HttpGet("feed")]
-    public async Task<IActionResult> Feed([FromQuery] string url)
+    [HttpGet("filter")]
+    public async Task<IActionResult> Filter([FromQuery] string url)
     {
         var feedUrl = HttpUtility.UrlDecode(url);
         var feed = await FetchFeed(feedUrl);
