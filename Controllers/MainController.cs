@@ -17,6 +17,11 @@ public class MainController : ControllerBase
         _filter = filter;
     }
 
+    public IActionResult Index()
+    {
+        return Content("feed-sieve is running!", "text/html");
+    }
+
     [HttpGet("feed")]
     public async Task<IActionResult> Feed([FromQuery] string url)
     {

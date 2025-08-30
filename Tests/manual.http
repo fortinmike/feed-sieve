@@ -1,4 +1,4 @@
-@host = http://localhost:9011
+@host = http://localhost:9010
 
 GET {{host}}/feed?url=http://eclecticlight.co/feed/
 Accept: application/json
