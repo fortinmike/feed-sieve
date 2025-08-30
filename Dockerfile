@@ -20,7 +20,7 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 # Expose the internal port the app listens on
-EXPOSE 5000
+EXPOSE 6677
 
 # Set the entrypoint to run the server
 ENTRYPOINT ["dotnet", "feed-sieve.dll"]

@@ -1,10 +1,10 @@
+name: feed-sieve
 services:
-  feed-sieve:
-    container_name: feed-sieve
+  app:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 9010:8080
+      - 6677:6677
     volumes:
       - ./rules.yaml:/app/rules.yaml:rw
