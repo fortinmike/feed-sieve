@@ -31,7 +31,7 @@ public class MainController : ControllerBase
         var rawItems = feed.Items.ToList();
         var filteredItems = _filter.Process(feedUrl, feed.Items);
 
-        _logger.LogInformation($"Filtered feed '{feedUrl}' ({rawItems.Count} -> {filteredItems.Count})");
+        _logger.LogInformation($"Filtered feed '{feedUrl}' (Before: {rawItems.Count}, After: {filteredItems.Count})");
 
         return Content(Rss.Serialize(feed), "application/rss+xml");
     }
