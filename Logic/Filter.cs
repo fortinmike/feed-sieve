@@ -26,9 +26,7 @@ public class Filter
         _logger.LogInformation($"Found {rulesForFeed.Count} rules matching feed {feedUrl}:");
         rulesForFeed.ForEach(r => _logger.LogDebug($"- {r.Name}"));
 
-        var filteredItems = rulesForFeed.Aggregate(unfilteredItems, (items, rule) => ApplyRule(items.ToList(), rule));
-
-        return filteredItems;
+        return rulesForFeed.Aggregate(unfilteredItems, FilterWithRule);
     }
 
     private bool MatchFeedUrl(string url1, string url2)
@@ -61,7 +59,7 @@ public class Filter
         }
     }
 
-    private List<SyndicationItem> ApplyRule(List<SyndicationItem> items, Rule rule)
+    private IEnumerable<SyndicationItem> FilterWithRule(IEnumerable<SyndicationItem> items, Rule rule)
     {
         return items
             .Where(item =>
