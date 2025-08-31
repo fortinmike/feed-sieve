@@ -33,23 +33,7 @@ public class Filter
     {
         try
         {
-            Uri normalize(string url)
-            {
-                // Add scheme if not present
-                url = Regex.Replace(url, @"^(?!https?://)", "https://", RegexOptions.IgnoreCase);
-
-                var uri = new Uri(url);
-
-                return new UriBuilder(uri)
-                {
-                    Scheme = "https", // Make sure differing schemes still match
-                    Port = 443, // Same for port, otherwise UriBuilder adds `:80` under certain conditions
-                    Host = uri.Host.ToLowerInvariant(),
-                    Path = uri.AbsolutePath.ToLowerInvariant().TrimEnd('/'), // Case insensitive and ignore trailing slash
-                }.Uri;
-            }
-
-            return normalize(url1) == normalize(url2);
+            return NormalizeUri(url1) == NormalizeUri(url2);
         }
         catch (UriFormatException ex)
         {
@@ -94,22 +78,19 @@ public class Filter
         return false;
     }
 
-    private Uri NormalizeUri(Uri uri)
+    private Uri NormalizeUri(string url)
     {
-        // Ensure lowercase host
-        var host = uri.Host.ToLowerInvariant();
+        // Add scheme if not present
+        url = Regex.Replace(url, @"^(?!https?://)", "https://", RegexOptions.IgnoreCase);
 
-        // Ensure path has no trailing slash
-        var path = uri.AbsolutePath.TrimEnd('/');
+        var uri = new Uri(url);
 
-        // Keep query intact
-        var builder = new UriBuilder(uri)
+        return new UriBuilder(uri)
         {
-            Scheme = "https", // optional: unify scheme
-            Host = host,
-            Path = path
-        };
-
-        return builder.Uri;
+            Scheme = "https", // Make sure differing schemes still match
+            Port = 443, // Same for port, otherwise UriBuilder adds `:80` under certain conditions
+            Host = uri.Host.ToLowerInvariant(),
+            Path = uri.AbsolutePath.ToLowerInvariant().TrimEnd('/'), // Case insensitive and ignore trailing slash
+        }.Uri;
     }
 }
