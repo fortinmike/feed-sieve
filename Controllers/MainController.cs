@@ -29,8 +29,8 @@ public class MainController : ControllerBase
 
         if (_env.IsDevelopment())
         {
-            System.IO.File.WriteAllText("./original.xml", originalDocument.ToString());
-            System.IO.File.WriteAllText("./modified.xml", modifiedDocument.ToString());
+            System.IO.File.WriteAllText("./output/original.xml", originalDocument.ToString());
+            System.IO.File.WriteAllText("./output/modified.xml", modifiedDocument.ToString());
         }
 
         return Content(modifiedDocument.ToString(), "application/rss+xml");
