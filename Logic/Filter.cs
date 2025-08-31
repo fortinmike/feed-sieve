@@ -85,9 +85,10 @@ public class Filter
     {
         if (Regex.IsMatch(text, rule.Regex, RegexOptions.IgnoreCase))
         {
-            _logger.LogDebug(
-                $"Excluded '{itemTitle}' from '{rule.Feed}' due to {kind} match with regex '{rule.Regex}'."
-            );
+            _logger.LogDebug("Excluded '{Item}'", itemTitle);
+            _logger.LogDebug("  from feed '{Feed}'", rule.Feed);
+            _logger.LogDebug("  based on rule '{Rule}'", rule.Name);
+            _logger.LogDebug("  due to {Kind} match with regex '{Regex}'", kind, rule.Regex);
             return true;
         }
         return false;
