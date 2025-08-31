@@ -19,7 +19,7 @@ public class Filter
         var rulesForFeed = rules
             .Where(r =>
                 r.Feed == null // When a rule has no feed specified, then it applies to all feeds
-                || MatchFeedUrl(r.Feed, feedUrl) // Otherwise check if the rule matches the feed we're processing
+                || NormalizeUri(r.Feed) == NormalizeUri(feedUrl) // Otherwise check if the rule applies to the feed we're processing
             )
             .ToList();
 
@@ -27,11 +27,6 @@ public class Filter
         rulesForFeed.ForEach(r => _logger.LogDebug($"- {r.Name}"));
 
         return rulesForFeed.Aggregate(unfilteredItems, FilterWithRule);
-    }
-
-    private bool MatchFeedUrl(string url1, string url2)
-    {
-        return NormalizeUri(url1) == NormalizeUri(url2);
     }
 
     private IEnumerable<SyndicationItem> FilterWithRule(IEnumerable<SyndicationItem> items, Rule rule)
