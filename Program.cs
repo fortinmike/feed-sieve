@@ -10,12 +10,6 @@ builder.Services.AddLogging();
 // Register our own services (for the app's logic)
 builder.Services.AddSingleton<Filter>();
 
-// Customize logging
-builder.Logging.AddSimpleConsole(options =>
-{
-    options.SingleLine = true;
-});
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
