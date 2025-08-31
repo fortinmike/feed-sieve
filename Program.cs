@@ -32,7 +32,7 @@ app.MapControllers();
 // Log startup and number of rules in default ruleset
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 var rules = Rules.Load("ruleset.default.yaml");
-logger.LogInformation($"✅ Application started!");
-logger.LogInformation($"ℹ️  Default ruleset contains {rules.Count} rules.");
+logger.LogInformation($"Application started!");
+logger.LogInformation($"Default ruleset contains {rules.Count} rules.");
 
 app.Run();

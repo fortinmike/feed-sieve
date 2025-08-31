@@ -29,7 +29,7 @@ public class MainController : ControllerBase
         var feed = await FetchFeed(feedUrl);
 
         var rawItems = feed.Items.ToList();
-        var filteredItems = _filter.Process(feedUrl, feed.Items);
+        var filteredItems = _filter.Process(feedUrl, feed.Items).ToList();
 
         _logger.LogInformation($"Filtered feed '{feedUrl}' (Before: {rawItems.Count}, After: {filteredItems.Count})");
 

@@ -5,7 +5,7 @@ public class Rule
     [YamlMember(Alias = "rule")]
     public required string Name { get; set; }
 
-    public required string Feed { get; set; }
+    public required string? Feed { get; set; } = null;
 
     public required string Match { get; set; }
 

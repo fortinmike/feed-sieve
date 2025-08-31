@@ -10,20 +10,56 @@ public class Filter
         _logger = logger;
     }
 
-    public List<SyndicationItem> Process(string feedUrl, IEnumerable<SyndicationItem> items)
+    public IEnumerable<SyndicationItem> Process(string feedUrl, IEnumerable<SyndicationItem> unfilteredItems)
     {
         // Loading rules is a very fast operation and doing it here ensures
         // that we can modify the rules and they will be applied instantly.
         var rules = Rules.Load("ruleset.default.yaml");
 
-        var filteredItems = items.ToList();
-        foreach (var rule in rules)
-        {
-            if (Regex.IsMatch(feedUrl, rule.Feed, RegexOptions.IgnoreCase))
-                filteredItems = ApplyRule(filteredItems, rule);
-        }
+        var rulesForFeed = rules
+            .Where(r =>
+                r.Feed == null // When a rule has no feed specified, then it applies to all feeds
+                || MatchFeedUrl(r.Feed, feedUrl) // Otherwise check if the rule matches the feed we're processing
+            )
+            .ToList();
+
+        _logger.LogInformation($"Found {rulesForFeed.Count} rules matching feed {feedUrl}");
+
+        var filteredItems = rulesForFeed.Aggregate(unfilteredItems, (items, rule) => ApplyRule(items.ToList(), rule));
 
         return filteredItems;
+    }
+
+    private bool MatchFeedUrl(string url1, string url2)
+    {
+        _logger.LogInformation($"{url1} {url2}");
+
+        try
+        {
+            Uri normalize(string url)
+            {
+                // Add scheme if not present
+                url = Regex.Replace(url, @"^(?!https?://)", "https://", RegexOptions.IgnoreCase);
+
+                var uri = new Uri(url);
+
+                return new UriBuilder(uri)
+                {
+                    Scheme = "https", // Make sure differing schemes still match
+                    Port = 443, // Same for port, otherwise UriBuilder adds `:80` under certain conditions
+                    Host = uri.Host.ToLowerInvariant(),
+                    Path = uri.AbsolutePath.ToLowerInvariant().TrimEnd('/'), // Case insensitive and ignore trailing slash
+                }.Uri;
+            }
+
+            return normalize(url1) == normalize(url2);
+        }
+        catch (UriFormatException ex)
+        {
+            _logger.LogError(ex.Message);
+            _logger.LogError($"Invalid URI is either {url1} or {url2}");
+            return false;
+        }
     }
 
     private List<SyndicationItem> ApplyRule(List<SyndicationItem> items, Rule rule)
@@ -58,5 +94,24 @@ public class Filter
             return true;
         }
         return false;
+    }
+
+    private Uri NormalizeUri(Uri uri)
+    {
+        // Ensure lowercase host
+        var host = uri.Host.ToLowerInvariant();
+
+        // Ensure path has no trailing slash
+        var path = uri.AbsolutePath.TrimEnd('/');
+
+        // Keep query intact
+        var builder = new UriBuilder(uri)
+        {
+            Scheme = "https", // optional: unify scheme
+            Host = host,
+            Path = path
+        };
+
+        return builder.Uri;
     }
 }
