@@ -31,16 +31,7 @@ public class Filter
 
     private bool MatchFeedUrl(string url1, string url2)
     {
-        try
-        {
-            return NormalizeUri(url1) == NormalizeUri(url2);
-        }
-        catch (UriFormatException ex)
-        {
-            _logger.LogError(ex.Message);
-            _logger.LogError($"Invalid URI is either {url1} or {url2}");
-            return false;
-        }
+        return NormalizeUri(url1) == NormalizeUri(url2);
     }
 
     private IEnumerable<SyndicationItem> FilterWithRule(IEnumerable<SyndicationItem> items, Rule rule)
@@ -78,19 +69,28 @@ public class Filter
         return false;
     }
 
-    private Uri NormalizeUri(string url)
+    private Uri? NormalizeUri(string url)
     {
-        // Add scheme if not present
-        url = Regex.Replace(url, @"^(?!https?://)", "https://", RegexOptions.IgnoreCase);
-
-        var uri = new Uri(url);
-
-        return new UriBuilder(uri)
+        try
         {
-            Scheme = "https", // Make sure differing schemes still match
-            Port = 443, // Same for port, otherwise UriBuilder adds `:80` under certain conditions
-            Host = uri.Host.ToLowerInvariant(),
-            Path = uri.AbsolutePath.ToLowerInvariant().TrimEnd('/'), // Case insensitive and ignore trailing slash
-        }.Uri;
+            // Add scheme if not present
+            url = Regex.Replace(url, @"^(?!https?://)", "https://", RegexOptions.IgnoreCase);
+
+            var uri = new Uri(url);
+
+            return new UriBuilder(uri)
+            {
+                Scheme = "https", // Make sure differing schemes still match
+                Port = 443, // Same for port, otherwise UriBuilder adds `:80` under certain conditions
+                Host = uri.Host.ToLowerInvariant(),
+                Path = uri.AbsolutePath.ToLowerInvariant().TrimEnd('/'), // Case insensitive and ignore trailing slash
+            }.Uri;
+        }
+        catch (UriFormatException ex)
+        {
+            _logger.LogError(ex.Message);
+            _logger.LogError($"Invalid URI is {url}");
+            return null;
+        }
     }
 }
