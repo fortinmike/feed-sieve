@@ -19,8 +19,8 @@ public class Filter
         var rulesForFeed = Rules
             .Load("ruleset.default.yaml")
             .Where(r =>
-                r.Feed == null // When a rule has no feed specified, then it applies to all feeds
-                || NormalizeUri(r.Feed) == NormalizeUri(feedUrl) // Otherwise check if the rule applies to the feed we're processing
+                r.Host == null // When a rule has no feed specified, then it applies to all feeds
+                || NormalizeUri(r.Host) == NormalizeUri(feedUrl) // Otherwise check if the rule applies to the feed we're processing
             )
             .ToList();
 
@@ -64,13 +64,12 @@ public class Filter
             url = Regex.Replace(url, @"^(?!https?://)", "https://", RegexOptions.IgnoreCase);
 
             var uri = new Uri(url);
-
             return new UriBuilder(uri)
             {
                 Scheme = "https", // Make sure differing schemes still match
                 Port = 443, // Same for port, otherwise UriBuilder adds `:80` under certain conditions
                 Host = uri.Host.ToLowerInvariant(),
-                Path = uri.AbsolutePath.ToLowerInvariant().TrimEnd('/'), // Case insensitive and ignore trailing slash
+                Path = "" // Don't consider the path (host is granual enough for 99% of cases and simpler to configure)
             }.Uri;
         }
         catch (UriFormatException ex)
@@ -155,7 +154,7 @@ public class Filter
         if (Regex.IsMatch(text, rule.Regex, RegexOptions.IgnoreCase))
         {
             _logger.LogDebug(
-                $"Excluded '{itemTitle}' from feed '{rule.Feed}' based on rule '{rule.Name}' due to {kind} match with regex '{rule.Regex}'"
+                $"Excluded '{itemTitle}' from feed '{rule.Host}' based on rule '{rule.Name}' due to {kind} match with regex '{rule.Regex}'"
             );
             return true;
         }
