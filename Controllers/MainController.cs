@@ -33,6 +33,8 @@ public class MainController : ControllerBase
 
         _logger.LogInformation($"Filtered feed '{feedUrl}' (Before: {rawItems.Count}, After: {filteredItems.Count})");
 
+        feed.Items = filteredItems; // Replace the feed items with the filtered items
+
         return Content(Rss.Serialize(feed), "application/rss+xml");
     }
 
