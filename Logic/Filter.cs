@@ -23,7 +23,8 @@ public class Filter
             )
             .ToList();
 
-        _logger.LogInformation($"Found {rulesForFeed.Count} rules matching feed {feedUrl}");
+        _logger.LogInformation($"Found {rulesForFeed.Count} rules matching feed {feedUrl}:");
+        rulesForFeed.ForEach(r => _logger.LogInformation($"- {r.Name}"));
 
         var filteredItems = rulesForFeed.Aggregate(unfilteredItems, (items, rule) => ApplyRule(items.ToList(), rule));
 
@@ -32,8 +33,6 @@ public class Filter
 
     private bool MatchFeedUrl(string url1, string url2)
     {
-        _logger.LogInformation($"{url1} {url2}");
-
         try
         {
             Uri normalize(string url)
