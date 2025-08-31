@@ -1,5 +1,7 @@
 manual.local.http
 ruleset.default.yaml
+/output/original.xml
+/output/modified.xml
 
 /bin/
 /obj/

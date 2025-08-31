@@ -1,19 +1,17 @@
-using System.ServiceModel.Syndication;
 using System.Web;
+using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("/")]
 public class MainController : ControllerBase
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<MainController> _logger;
+    private readonly IWebHostEnvironment _env;
     private readonly Filter _filter;
 
-    public MainController(IHttpClientFactory httpClientFactory, ILogger<MainController> logger, Filter filter)
+    public MainController(IWebHostEnvironment env, Filter filter)
     {
-        _httpClientFactory = httpClientFactory;
-        _logger = logger;
+        _env = env;
         _filter = filter;
     }
 
@@ -23,25 +21,18 @@ public class MainController : ControllerBase
     }
 
     [HttpGet("filter")]
-    public async Task<IActionResult> Filter([FromQuery] string url)
+    public IActionResult Filter([FromQuery] string url)
     {
         var feedUrl = HttpUtility.UrlDecode(url);
-        var feed = await FetchFeed(feedUrl);
+        var originalDocument = XDocument.Load(feedUrl);
+        var modifiedDocument = _filter.Process(originalDocument, feedUrl);
 
-        var rawItems = feed.Items.ToList();
-        var filteredItems = _filter.Process(feedUrl, feed.Items).ToList();
+        if (_env.IsDevelopment())
+        {
+            System.IO.File.WriteAllText("./original.xml", originalDocument.ToString());
+            System.IO.File.WriteAllText("./modified.xml", modifiedDocument.ToString());
+        }
 
-        _logger.LogInformation($"Filtered feed '{feedUrl}' (Before: {rawItems.Count}, After: {filteredItems.Count})");
-
-        feed.Items = filteredItems; // Replace the feed items with the filtered items
-
-        return Content(Rss.Serialize(feed), "application/rss+xml");
-    }
-
-    private async Task<SyndicationFeed> FetchFeed(string url)
-    {
-        var client = _httpClientFactory.CreateClient();
-        var xmlString = await client.GetStringAsync(url);
-        return Rss.Parse(xmlString);
+        return Content(modifiedDocument.ToString(), "application/rss+xml");
     }
 }
