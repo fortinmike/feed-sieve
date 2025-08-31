@@ -24,7 +24,7 @@ public class Filter
             .ToList();
 
         _logger.LogInformation($"Found {rulesForFeed.Count} rules matching feed {feedUrl}:");
-        rulesForFeed.ForEach(r => _logger.LogInformation($"- {r.Name}"));
+        rulesForFeed.ForEach(r => _logger.LogDebug($"- {r.Name}"));
 
         var filteredItems = rulesForFeed.Aggregate(unfilteredItems, (items, rule) => ApplyRule(items.ToList(), rule));
 
