@@ -23,7 +23,7 @@ Coming soon...
 
 - Install the .NET SDK (see required version in `feed-sieve.csproj`).
 - Duplicate the `ruleset.example.yaml` file as `ruleset.default.yaml` (this will be the ruleset you'll be testing with)
-- Run `dotnet watch` to start the server and watch for changes.
+- Run `ASPNETCORE_ENVIRONMENT=Development dotnet watch` to start the server and watch for changes.
 
 ## Manual Publishing
 
