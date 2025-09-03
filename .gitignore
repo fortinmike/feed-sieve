@@ -1,5 +1,5 @@
 manual.local.http
-ruleset.default.yaml
+rules.default.yaml
 /output/original.xml
 /output/modified.xml
 

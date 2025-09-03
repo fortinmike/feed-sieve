@@ -12,12 +12,11 @@ public class Filter
         _logger = logger;
     }
 
-    public XDocument Process(XDocument originalDocument, string feedUrl)
+    public XDocument Process(XDocument originalDocument, List<Rule> rules, string feedUrl)
     {
         // Loading rules is a very fast operation and doing it here ensures
         // that we can modify the rules and they will be applied instantly.
-        var rulesForFeed = Rules
-            .Load("ruleset.default.yaml")
+        var rulesForFeed = rules
             .Where(r =>
                 r.Host == null // When a rule has no feed specified, then it applies to all feeds
                 || NormalizeUri(r.Host) == NormalizeUri(feedUrl) // Otherwise check if the rule applies to the feed we're processing

@@ -9,6 +9,7 @@ builder.Services.AddLogging();
 
 // Register our own services (for the app's logic)
 builder.Services.AddSingleton<Filter>();
+builder.Services.AddSingleton(new Cache(new DirectoryInfo("cache")));
 
 var app = builder.Build();
 
@@ -23,10 +24,10 @@ app.UseHttpsRedirection();
 
 app.MapControllers();
 
-// Log startup and number of rules in default ruleset
+// Log startup and number of rules in default rule set
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
-var rules = Rules.Load("ruleset.default.yaml");
+var rules = Rules.Load("rules.default.yaml");
 logger.LogInformation($"Application started!");
-logger.LogInformation($"Default ruleset contains {rules.Count} rules.");
+logger.LogInformation($"Default rules contain {rules.Count} entries.");
 
 app.Run();

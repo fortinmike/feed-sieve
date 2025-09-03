@@ -5,8 +5,12 @@ public class Rules
 {
     public static List<Rule> Load(string path)
     {
-        var yaml = File.ReadAllText(path);
+        return Rules.Parse(File.ReadAllText(path));
+    }
+
+    public static List<Rule> Parse(string str)
+    {
         var deserializer = new DeserializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance).Build();
-        return deserializer.Deserialize<List<Rule>>(yaml);
+        return deserializer.Deserialize<List<Rule>>(str);
     }
 }
