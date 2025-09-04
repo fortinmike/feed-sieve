@@ -13,6 +13,7 @@ A simple self-hosted RSS feed proxy that filters out unwanted items. It's useful
 - Match item title or content (or both) with regexes for maximum flexibility
 - Works will all RSS readers; just subscribe to feed-sieve's filter URL instead of the original feed URL
 - Simple & no database; feeds are processed on-the-fly and cached when nothing changed since the last source fetch
+- Simple query-string based authentication to prevent use by unauthorized parties
 - More coming soon...
 
 ## Editing Rules
@@ -44,7 +45,8 @@ This project is not on Docker Hub (yet). You can still use it easily with a simp
         ports:
           - 6677:6677
         volumes:
-          - ./volumes/rules.yaml:/app/rules.yaml:rw
+          - ./volumes/rules.yaml:/app/rules.yaml:ro
+          - ./appsettings.Local.json:/app/appsettings.Local.json:ro
 
 Then run `docker compose up` in the directory where the file is located.
 

@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Web;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
@@ -7,13 +8,21 @@ using Microsoft.AspNetCore.Mvc;
 public class MainController : ControllerBase
 {
     private readonly IWebHostEnvironment _env;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<MainController> _logger;
     private readonly Filter _filter;
     private readonly Cache _cache;
 
-    public MainController(IWebHostEnvironment env, ILogger<MainController> logger, Filter filter, Cache cache)
+    public MainController(
+        IWebHostEnvironment env,
+        IConfiguration configuration,
+        ILogger<MainController> logger,
+        Filter filter,
+        Cache cache
+    )
     {
         _env = env;
+        _configuration = configuration;
         _logger = logger;
         _filter = filter;
         _cache = cache;
@@ -25,8 +34,18 @@ public class MainController : ControllerBase
     }
 
     [HttpGet("filter")]
-    public async Task<IActionResult> Filter([FromQuery] string url)
+    public async Task<IActionResult> Filter([FromQuery] string url, [FromQuery] string? secret)
     {
+        var correctSecret = _configuration["Secret"];
+        if (correctSecret != "" && secret != correctSecret)
+        {
+            var attemptedSecret = secret == null ? "no secret" : $"attempted secret '{secret}'";
+            _logger.LogWarning(
+                $"Unauthorized access attempted by {HttpContext.Connection.RemoteIpAddress} with {attemptedSecret}"
+            );
+            return Unauthorized();
+        }
+
         var ruleset = "default";
 
         // Fetch the RSS feed XML and get the XML

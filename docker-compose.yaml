@@ -7,4 +7,5 @@ services:
     ports:
       - 6677:6677
     volumes:
-      - ./rules.yaml:/app/rules.yaml:rw
+      - ./rules.yaml:/app/rules.yaml:ro
+      - ./appsettings.Local.json:/app/appsettings.Local.json:ro

@@ -1,5 +1,8 @@
 var builder = WebApplication.CreateBuilder(args);
 
+// Add an additional config layer with our secrets
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
 // Register core services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -24,10 +27,11 @@ app.UseHttpsRedirection();
 
 app.MapControllers();
 
-// Log startup and number of rules in default rule set
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
-var rules = Rules.Load("rules.default.yaml");
 logger.LogInformation($"Application started!");
-logger.LogInformation($"Default rules contain {rules.Count} entries.");
+logger.LogInformation($"Default rules contain {Rules.Load("rules.default.yaml").Count} entries.");
+logger.LogInformation(
+    $"Secret-Based Authentication: {(builder.Configuration["Secret"] == "" ? "Disabled" : "Enabled")}"
+);
 
 app.Run();
