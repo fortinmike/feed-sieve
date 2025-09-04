@@ -1,5 +1,7 @@
+.DS_Store
 manual.local.http
 rules.default.yaml
+/cache/
 /output/original.xml
 /output/modified.xml
 
