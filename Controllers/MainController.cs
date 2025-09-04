@@ -61,8 +61,10 @@ public class MainController : ControllerBase
         var hash = rssHash + rulesHash;
 
         // Results are cached as long as neither the original RSS nor the rules string change
+        var cacheEnabled = _configuration["Cache"] == "True";
+        _logger.LogInformation($"Cache: {_configuration["Cache"]}");
         var cachedRss = _cache.Get(feedUrl, hash);
-        if (cachedRss != null)
+        if (cacheEnabled && cachedRss != null)
         {
             // Return the cached RSS document
             WriteOutputInDevMode(originalRss, cachedRss);
@@ -75,7 +77,8 @@ public class MainController : ControllerBase
             var originalDocument = XDocument.Parse(originalRss);
             var modifiedDocument = _filter.Process(originalDocument, rules, feedUrl);
             var modifiedRss = modifiedDocument.ToString();
-            _cache.Set(feedUrl, hash, modifiedRss);
+            if (cacheEnabled)
+                _cache.Set(feedUrl, hash, modifiedRss);
             WriteOutputInDevMode(originalRss, modifiedRss);
             return Content(modifiedRss, "application/rss+xml");
         }
