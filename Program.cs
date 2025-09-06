@@ -11,7 +11,7 @@ builder.Services.AddControllers();
 builder.Services.AddLogging();
 
 // Register our own services (for the app's logic)
-builder.Services.AddSingleton<Filter>();
+builder.Services.AddSingleton<Processor>();
 builder.Services.AddSingleton(new Cache(new DirectoryInfo("cache")));
 
 var app = builder.Build();

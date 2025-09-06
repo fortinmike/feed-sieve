@@ -10,21 +10,21 @@ public class MainController : ControllerBase
     private readonly IWebHostEnvironment _env;
     private readonly IConfiguration _configuration;
     private readonly ILogger<MainController> _logger;
-    private readonly Filter _filter;
+    private readonly Processor _processor;
     private readonly Cache _cache;
 
     public MainController(
         IWebHostEnvironment env,
         IConfiguration configuration,
         ILogger<MainController> logger,
-        Filter filter,
+        Processor processor,
         Cache cache
     )
     {
         _env = env;
         _configuration = configuration;
         _logger = logger;
-        _filter = filter;
+        _processor = processor;
         _cache = cache;
     }
 
@@ -75,7 +75,7 @@ public class MainController : ControllerBase
         {
             // Modify the original RSS document by processing it with the loaded rules
             var originalDocument = XDocument.Parse(originalRss);
-            var modifiedDocument = _filter.Process(originalDocument, rules, feedUrl);
+            var modifiedDocument = _processor.Process(originalDocument, rules, feedUrl);
             var modifiedRss = modifiedDocument.ToString();
             if (cacheEnabled)
                 _cache.Set(feedUrl, hash, modifiedRss);

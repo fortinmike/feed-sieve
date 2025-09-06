@@ -1,13 +1,13 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
-public class Filter
+public class Processor
 {
     private static readonly string AtomNamespace = "http://www.w3.org/2005/Atom";
 
     private readonly ILogger<MainController> _logger;
 
-    public Filter(ILogger<MainController> logger)
+    public Processor(ILogger<MainController> logger)
     {
         _logger = logger;
     }
