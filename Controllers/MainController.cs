@@ -88,8 +88,10 @@ public class MainController : ControllerBase
     {
         if (_env.IsDevelopment())
         {
-            System.IO.File.WriteAllText("./output/original.xml", original);
-            System.IO.File.WriteAllText("./output/modified.xml", modified);
+            var dir = "./output";
+            Directory.CreateDirectory(dir);
+            System.IO.File.WriteAllText($"{dir}/original.xml", original);
+            System.IO.File.WriteAllText($"{dir}/modified.xml", modified);
         }
     }
 }
