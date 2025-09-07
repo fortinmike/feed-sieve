@@ -62,7 +62,6 @@ public class MainController : ControllerBase
 
         // Results are cached as long as neither the original RSS nor the rules string change
         var cacheEnabled = _configuration["Cache"] == "True";
-        _logger.LogInformation($"Cache: {_configuration["Cache"]}");
         var cachedRss = _cache.Get(feedUrl, hash);
         if (cacheEnabled && cachedRss != null)
         {
