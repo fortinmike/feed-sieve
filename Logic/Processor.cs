@@ -3,13 +3,13 @@ using System.Xml.Linq;
 
 public class Processor
 {
-    private static readonly string AtomNamespace = "http://www.w3.org/2005/Atom";
-
     private readonly ILogger<MainController> _logger;
+    private readonly IEnumerable<IFilter> _filters;
 
-    public Processor(ILogger<MainController> logger)
+    public Processor(ILogger<MainController> logger, IEnumerable<IFilter> filters)
     {
         _logger = logger;
+        _filters = filters;
     }
 
     public XDocument Process(XDocument originalDocument, List<Rule> rules, string feedUrl)
@@ -38,21 +38,6 @@ public class Processor
         );
 
         return modifiedDocument;
-    }
-
-    private void ReplaceItemsInDocument(XDocument document, List<XElement> filteredItems)
-    {
-        var channel = document.Root?.Element("channel");
-        if (channel != null) // RSS
-        {
-            channel.Elements("item").Remove();
-            channel.Add(filteredItems);
-        }
-        else // Atom
-        {
-            document.Root?.Elements(XName.Get("entry", AtomNamespace)).Remove();
-            document.Root?.Add(filteredItems);
-        }
     }
 
     private Uri? NormalizeUri(string url)
@@ -95,68 +80,30 @@ public class Processor
         }
 
         // Atom: <feed xmlns="http://www.w3.org/2005/Atom"><entry>…</entry></feed>
-        if (doc.Root.Name.LocalName == "feed" && doc.Root.Name.NamespaceName == AtomNamespace)
+        if (doc.Root.Name.LocalName == "feed" && doc.Root.Name.NamespaceName == Constants.AtomNamespace)
         {
-            foreach (var entry in doc.Root.Elements(XName.Get("entry", AtomNamespace)))
+            foreach (var entry in doc.Root.Elements(XName.Get("entry", Constants.AtomNamespace)))
                 yield return entry;
         }
     }
 
     private List<XElement> FilterWithRule(List<XElement> items, Rule rule)
     {
-        return items.Where(i => KeepItem(i, rule)).ToList();
+        return items.Where(i => _filters.All(filter => filter.Keep(i, rule))).ToList();
     }
 
-    private bool KeepItem(XElement item, Rule rule)
+    private void ReplaceItemsInDocument(XDocument document, List<XElement> filteredItems)
     {
-        bool exclude = false;
-
-        // Exclude based on title
-        var title = GetValue(item, "title");
-        if (rule.Match == "title" || rule.Match == "all")
-            exclude |= Match("title", title, rule, title);
-
-        // Exclude based on content
-        var content = GetContent(item);
-        if (rule.Match == "content" || rule.Match == "all")
-            exclude |= Match("content", title, rule, content);
-
-        return !exclude;
-    }
-
-    private string GetValue(XElement parent, string localName, string? ns = null) =>
-        (string?)parent.Element(ns is null ? localName : XName.Get(localName, ns)) ?? "";
-
-    private string GetContent(XElement item)
-    {
-        // RSS 2.0 content:encoded
-        var content = GetValue(item, "encoded", "http://purl.org/rss/1.0/modules/content/");
-        if (!string.IsNullOrWhiteSpace(content))
-            return content;
-
-        // RSS 2.0 description
-        content = GetValue(item, "description");
-        if (!string.IsNullOrWhiteSpace(content))
-            return content;
-
-        // Atom content
-        content = GetValue(item, "content", AtomNamespace);
-        if (!string.IsNullOrWhiteSpace(content))
-            return content;
-
-        // Atom summary
-        return GetValue(item, "summary", AtomNamespace);
-    }
-
-    private bool Match(string kind, string itemTitle, Rule rule, string text)
-    {
-        if (Regex.IsMatch(text, rule.Regex, RegexOptions.IgnoreCase))
+        var channel = document.Root?.Element("channel");
+        if (channel != null) // RSS
         {
-            _logger.LogDebug(
-                $"Excluded '{itemTitle}' from feed '{rule.Host}' based on rule '{rule.Name}' due to {kind} match with regex '{rule.Regex}'"
-            );
-            return true;
+            channel.Elements("item").Remove();
+            channel.Add(filteredItems);
         }
-        return false;
+        else // Atom
+        {
+            document.Root?.Elements(XName.Get("entry", Constants.AtomNamespace)).Remove();
+            document.Root?.Add(filteredItems);
+        }
     }
 }
