@@ -5,7 +5,7 @@ A simple self-hosted RSS feed proxy that filters out unwanted items. It's useful
 - A feed is great but has too many sponsored posts, ads and other uninteresting stuff
 - A site sometimes writes about things you don't want to hear about
 - A bigger site offers a single feed combining all categories but only some of the categories are interesting to you
-- Whatever else you can think of!
+- Whatever else you can think of! I'm sure you've had some feeds you wished were higher signal-to-noise.
 
 ## Features
 
