@@ -4,19 +4,30 @@
   ViewData["Title"] = "OPML Converter";
 }
 <main class="pico">
-  <h1>OPML Converter</h1>
+  <div class="subpage-header">
+    <a href="/admin" class="subpage-back-link" aria-label="Back to admin">
+      <span class="subpage-back-icon" aria-hidden="true"></span>
+      <span>Back</span>
+    </a>
+    <h1>OPML Converter</h1>
+  </div>
+  @* <p class="page-description">
+    Procedure:
+  </p> *@
+  <ol class="page-description">
+    <li>Export your feeds to OPML from your feed reader.</li>
+    <li>Convert the OPML to filtered URLs using this converter.</li>
+    <li>Import the converted OPML back into your feed reader.</li>
+  </ol>
+  @* <p class="page-description">
+    After that, your feed reader will request filtered feeds from your feed-sieve instance.
+  </p> *@
   <form method="post" enctype="multipart/form-data" class="converter-form">
     @Html.AntiForgeryToken()
     <div class="converter-row">
       <div class="converter-file-box">
-        <input
-          id="OpmlFile"
-          name="OpmlFile"
-          type="file"
-          class="converter-file-input"
-          accept=".opml,.xml,text/xml,application/xml"
-          aria-label="OPML file"
-          required>
+        <input id="OpmlFile" name="OpmlFile" type="file" class="converter-file-input"
+               accept=".opml,.xml,text/xml,application/xml" aria-label="OPML file" required>
       </div>
       <button type="submit">Convert</button>
     </div>

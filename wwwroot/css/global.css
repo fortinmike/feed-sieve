@@ -37,10 +37,56 @@ h1 {
   margin-bottom: 2rem;
 }
 
+.subpage-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.pico .subpage-header h1 {
+  grid-column: 2;
+  margin: 0;
+}
+
+.pico .subpage-back-link {
+  grid-column: 1;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.4rem 0.65rem;
+  border: var(--pico-border-width) solid var(--pico-muted-border-color);
+  border-radius: var(--pico-border-radius);
+  background: var(--pico-form-element-background-color);
+  color: var(--pico-muted-color);
+  font-size: 0.875rem;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.pico .subpage-back-link:hover,
+.pico .subpage-back-link:focus-visible {
+  background: var(--pico-form-element-selected-background-color);
+  color: var(--pico-color);
+  text-decoration: none;
+}
+
+.subpage-back-icon {
+  display: block;
+  width: 0.95rem;
+  height: 0.95rem;
+  background-color: currentColor;
+  -webkit-mask: url("/images/chevron-left.svg") center / contain no-repeat;
+  mask: url("/images/chevron-left.svg") center / contain no-repeat;
+}
+
 .pico p {
   font-size: 0.875rem;
 }
 
-.pico p.page-description {
+.pico .page-description {
+  font-size: 0.875rem;
   color: var(--pico-muted-color);
 }

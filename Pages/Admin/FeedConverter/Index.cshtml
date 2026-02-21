@@ -4,17 +4,23 @@
   ViewData["Title"] = "Feed Converter";
 }
 <main class="pico">
-  <h1>Feed Converter</h1>
+  <div class="subpage-header">
+    <a href="/admin" class="subpage-back-link" aria-label="Back to admin">
+      <span class="subpage-back-icon" aria-hidden="true"></span>
+      <span>Back</span>
+    </a>
+    <h1>Feed Converter</h1>
+  </div>
+  <ol class="page-description">
+    <li>Paste a raw feed URL below.</li>
+    <li>Convert the URL.</li>
+    <li>Subscribe using the generated URL in your feed reader.</li>
+  </ol>
   <form method="post" class="converter-form">
     @Html.AntiForgeryToken()
     <div class="converter-row">
-      <input
-        type="url"
-        name="FeedUrl"
-        value="@Model.FeedUrl"
-        placeholder="https://example.com/feed.xml"
-        aria-label="Feed URL"
-        required>
+      <input type="url" name="FeedUrl" value="@Model.FeedUrl" placeholder="https://example.com/feed.xml"
+             aria-label="Feed URL" required>
       <button type="submit">Convert</button>
     </div>
   </form>
@@ -28,12 +34,8 @@
       <p class="page-description">Filtered feed URL</p>
       <div class="converter-result-box">
         <input id="filterUrlOutput" type="text" value="@Model.FilterUrl" readonly>
-        <button
-          type="button"
-          class="converter-copy-button"
-          data-copy-target="filterUrlOutput"
-          aria-label="Copy filtered feed URL"
-          title="Copy">
+        <button type="button" class="converter-copy-button" data-copy-target="filterUrlOutput"
+                aria-label="Copy filtered feed URL" title="Copy">
           <span class="converter-copy-icon" aria-hidden="true"></span>
         </button>
       </div>
