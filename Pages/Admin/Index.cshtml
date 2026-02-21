@@ -1,22 +1,10 @@
 @page "/admin"
 @model feed_sieve.Pages.Admin.IndexModel
 @{
-    Layout = null;
+  ViewData["Title"] = "Admin";
+  ViewData["BodyClass"] = "admin-page";
 }
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Admin</title>
-    <link rel="stylesheet" href="/css/global.css">
-    <link rel="stylesheet" href="/vendor/pico/css/pico.conditional.min.css">
-    <link rel="stylesheet" href="/feed-sieve.styles.css">
-</head>
-<body class="admin-page">
-    <main class="pico admin-shell">
-        <h1 class="page-title">Admin</h1>
-        <p>Admin sub-pages for tools and forms will live here</p>
-    </main>
-</body>
-</html>
+<main class="pico admin-shell">
+  <h1 class="page-title">Admin</h1>
+  <p>Admin sub-pages for tools and forms will live here</p>
+</main>

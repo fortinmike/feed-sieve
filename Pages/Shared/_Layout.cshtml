@@ -1,0 +1,22 @@
+@{
+  var pageTitle = ViewData["Title"] as string ?? "feed-sieve";
+  var bodyClass = ViewData["BodyClass"] as string ?? "";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>@pageTitle</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/vendor/pico/css/pico.conditional.min.css">
+  <link rel="stylesheet" href="/feed-sieve.styles.css">
+  @await RenderSectionAsync("Head", required: false)
+</head>
+<body class="@bodyClass">
+  @RenderBody()
+</body>
+
+</html>
