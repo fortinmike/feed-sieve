@@ -1,7 +1,35 @@
 @page "/admin/opml-converter"
+@model OpmlConverterModel
 @{
   ViewData["Title"] = "OPML Converter";
 }
 <main class="pico">
   <h1>OPML Converter</h1>
+  <form method="post" enctype="multipart/form-data" class="converter-form">
+    @Html.AntiForgeryToken()
+    <div class="converter-row">
+      <div class="converter-file-box">
+        <input
+          id="OpmlFile"
+          name="OpmlFile"
+          type="file"
+          class="converter-file-input"
+          accept=".opml,.xml,text/xml,application/xml"
+          aria-label="OPML file"
+          required>
+      </div>
+      <button type="submit">Convert</button>
+    </div>
+  </form>
+  @if (Model.ErrorMessage is not null)
+  {
+    <p class="converter-error">@Model.ErrorMessage</p>
+  }
+  @if (Model.DownloadUrl is not null)
+  {
+    <div class="converter-output">
+      <p class="page-description">Converted @Model.ConvertedFeedsCount feed URL(s)</p>
+      <a href="@Model.DownloadUrl">Download converted OPML</a>
+    </div>
+  }
 </main>

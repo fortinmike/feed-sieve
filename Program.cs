@@ -13,8 +13,12 @@ builder.Services.AddLogging();
 builder.Services.AddSingleton(new Cache(new DirectoryInfo("cache")));
 builder.Services.AddScoped<Processor>();
 builder.Services.AddScoped<IFilter, RegexFilter>();
+builder.Services.AddSingleton<FilterUrlBuilder>();
 
 var app = builder.Build();
+var secret = builder.Configuration["Secret"] ?? "";
+if (string.IsNullOrWhiteSpace(secret))
+    throw new InvalidOperationException("Secret must be set in configuration");
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
@@ -22,7 +26,7 @@ app.UseMiddleware<BasicAuthMiddleware>(
     new BasicAuthOptions
     {
         Username = "admin",
-        Password = builder.Configuration["Secret"] ?? "",
+        Password = secret,
         ProtectedPathPrefixes = ["/admin"]
     }
 );

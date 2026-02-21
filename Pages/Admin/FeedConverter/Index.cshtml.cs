@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 public class FeedConverterModel : PageModel
 {
-    private readonly IConfiguration _configuration;
+    private readonly FilterUrlBuilder _filterUrlBuilder;
 
     [BindProperty]
     public string FeedUrl { get; set; } = "";
@@ -12,9 +12,9 @@ public class FeedConverterModel : PageModel
 
     public string? ErrorMessage { get; private set; }
 
-    public FeedConverterModel(IConfiguration configuration)
+    public FeedConverterModel(FilterUrlBuilder filterUrlBuilder)
     {
-        _configuration = configuration;
+        _filterUrlBuilder = filterUrlBuilder;
     }
 
     public IActionResult OnPost()
@@ -32,11 +32,7 @@ public class FeedConverterModel : PageModel
             return Page();
         }
 
-        var secret = _configuration["Secret"] ?? "";
-        var endpoint = $"{Request.Scheme}://{Request.Host}{Request.PathBase}/filter";
-        var encodedFeedUrl = Uri.EscapeDataString(feedUrl);
-        var encodedSecret = Uri.EscapeDataString(secret);
-        FilterUrl = $"{endpoint}?url={encodedFeedUrl}&secret={encodedSecret}";
+        FilterUrl = _filterUrlBuilder.Build(Request, feedUrl);
 
         return Page();
     }
