@@ -28,6 +28,14 @@ main {
   color: var(--app-text);
 }
 
-.page-title {
+h1 {
   text-align: center;
+}
+
+p {
+  font-size: 0.875rem;
+}
+
+.pico p.page-description {
+  color: var(--pico-muted-color);
 }

@@ -1,0 +1,8 @@
+.groups {
+  display: grid;
+  gap: 1rem;
+}
+
+.group p {
+  margin: 0.25rem 0 0;
+}
