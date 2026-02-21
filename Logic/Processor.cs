@@ -3,10 +3,10 @@ using System.Xml.Linq;
 
 public class Processor
 {
-    private readonly ILogger<MainController> _logger;
+    private readonly ILogger<Processor> _logger;
     private readonly IEnumerable<IFilter> _filters;
 
-    public Processor(ILogger<MainController> logger, IEnumerable<IFilter> filters)
+    public Processor(ILogger<Processor> logger, IEnumerable<IFilter> filters)
     {
         _logger = logger;
         _filters = filters;
