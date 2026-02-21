@@ -1,6 +1,6 @@
 # feed-sieve
 
-A simple RSS feed proxy that filters out unwanted items based on user-defined rules. It's useful in the following scenarios:
+A simple but powerful RSS feed proxy that filters out unwanted items based on user-defined rules. It's useful in the following scenarios:
 
 - A feed is great but has too many sponsored posts, ads and other uninteresting stuff
 - A site sometimes writes about things you don't want to hear about
