@@ -9,6 +9,7 @@ public class FilterController : ControllerBase
     private readonly IWebHostEnvironment _env;
     private readonly IConfiguration _configuration;
     private readonly ILogger<FilterController> _logger;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly Processor _processor;
     private readonly Cache _cache;
 
@@ -16,6 +17,7 @@ public class FilterController : ControllerBase
         IWebHostEnvironment env,
         IConfiguration configuration,
         ILogger<FilterController> logger,
+        IHttpClientFactory httpClientFactory,
         Processor processor,
         Cache cache
     )
@@ -23,6 +25,7 @@ public class FilterController : ControllerBase
         _env = env;
         _configuration = configuration;
         _logger = logger;
+        _httpClientFactory = httpClientFactory;
         _processor = processor;
         _cache = cache;
     }
@@ -44,7 +47,22 @@ public class FilterController : ControllerBase
 
         // Fetch the RSS feed XML and get the XML
         var feedUrl = HttpUtility.UrlDecode(url);
-        var originalRss = await new HttpClient().GetStringAsync(feedUrl);
+        string originalRss;
+        try
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+            originalRss = await httpClient.GetStringAsync(feedUrl, HttpContext.RequestAborted);
+        }
+        catch (OperationCanceledException ex) when (!HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex, "Timeout while fetching upstream feed {FeedUrl}", feedUrl);
+            return StatusCode(StatusCodes.Status504GatewayTimeout);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch upstream feed {FeedUrl}", feedUrl);
+            return StatusCode(StatusCodes.Status502BadGateway);
+        }
 
         // Load the rules
         var rulesString = System.IO.File.ReadAllText($"rules.{ruleset}.yaml");
