@@ -1,22 +1,22 @@
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 
-[ApiController]
-[Route("/")]
-public class AdminController : ControllerBase
+namespace feed_sieve.Pages.Admin;
+
+public class IndexModel : PageModel
 {
     private const string AdminUsername = "admin";
     private readonly IConfiguration _configuration;
-    private readonly ILogger<AdminController> _logger;
+    private readonly ILogger<IndexModel> _logger;
 
-    public AdminController(IConfiguration configuration, ILogger<AdminController> logger)
+    public IndexModel(IConfiguration configuration, ILogger<IndexModel> logger)
     {
         _configuration = configuration;
         _logger = logger;
     }
 
-    [HttpGet("admin")]
-    public IActionResult Admin()
+    public IActionResult OnGet()
     {
         if (!IsAuthorized())
         {
@@ -24,7 +24,7 @@ public class AdminController : ControllerBase
             return Unauthorized();
         }
 
-        return Content("<h1>Admin</h1>", "text/html");
+        return Page();
     }
 
     private bool IsAuthorized()

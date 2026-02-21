@@ -6,6 +6,7 @@ builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, relo
 // Register core services
 builder.Services.AddHttpClient();
 builder.Services.AddControllers();
+builder.Services.AddRazorPages();
 builder.Services.AddLogging();
 
 // Register our own services (for the app's logic)
@@ -16,8 +17,10 @@ builder.Services.AddScoped<IFilter, RegexFilter>();
 var app = builder.Build();
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 app.MapControllers();
+app.MapRazorPages();
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation($"Application started!");
