@@ -1,22 +1,21 @@
-using System.Runtime.InteropServices;
 using System.Web;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("/")]
-public class MainController : ControllerBase
+public class FilterController : ControllerBase
 {
     private readonly IWebHostEnvironment _env;
     private readonly IConfiguration _configuration;
-    private readonly ILogger<MainController> _logger;
+    private readonly ILogger<FilterController> _logger;
     private readonly Processor _processor;
     private readonly Cache _cache;
 
-    public MainController(
+    public FilterController(
         IWebHostEnvironment env,
         IConfiguration configuration,
-        ILogger<MainController> logger,
+        ILogger<FilterController> logger,
         Processor processor,
         Cache cache
     )
