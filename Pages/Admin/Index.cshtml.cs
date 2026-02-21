@@ -2,8 +2,6 @@ using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace feed_sieve.Pages.Admin;
-
 public class IndexModel : PageModel
 {
     private const string AdminUsername = "admin";
