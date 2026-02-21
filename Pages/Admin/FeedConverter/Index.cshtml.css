@@ -9,6 +9,14 @@
   align-items: end;
 }
 
+.converter-row button {
+  margin-bottom: 0;
+}
+
+.converter-row input {
+  margin-bottom: 0;
+}
+
 .converter-output {
   margin-top: 1rem;
 }
