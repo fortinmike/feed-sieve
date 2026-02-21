@@ -8,6 +8,8 @@ builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();
 builder.Services.AddLogging();
+builder.Logging.ClearProviders();
+builder.Logging.AddSimpleConsole(options => options.SingleLine = true);
 
 // Register our own services (for the app's logic)
 builder.Services.AddSingleton(new Cache(new DirectoryInfo("cache")));
