@@ -4,8 +4,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 // Register core services
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 builder.Services.AddLogging();
@@ -16,13 +14,6 @@ builder.Services.AddScoped<Processor>();
 builder.Services.AddScoped<IFilter, RegexFilter>();
 
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 app.UseHttpsRedirection();
 

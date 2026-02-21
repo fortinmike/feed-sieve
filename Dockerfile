@@ -1,5 +1,5 @@
-# Stage 1: Use the full .NET 9 SDK to build the project
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+# Stage 1: Use the full .NET 10 SDK to build the project
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy only the csproj first to leverage Docker cache for dependencies
@@ -13,7 +13,7 @@ COPY . ./
 RUN dotnet publish -c Release -o /app/publish
 
 # Stage 2: Use lightweight ASP.NET runtime image for final container
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 WORKDIR /app
 
 # Copy the published output from the build stage
