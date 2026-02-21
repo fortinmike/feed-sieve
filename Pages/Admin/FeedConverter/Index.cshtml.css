@@ -1,0 +1,33 @@
+.converter-form {
+  margin-top: 1rem;
+}
+
+.converter-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.converter-output {
+  margin-top: 1rem;
+}
+
+.converter-output input {
+  margin: 0;
+}
+
+.converter-error {
+  margin-top: 0.5rem;
+  color: var(--pico-del-color);
+}
+
+@media (max-width: 640px) {
+  .converter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .converter-row button {
+    width: 100%;
+  }
+}

@@ -1,7 +1,32 @@
 @page "/admin/feed-converter"
+@model FeedConverterModel
 @{
-  ViewData["Title"] = "Single Feed Converter";
+  ViewData["Title"] = "Feed Converter";
 }
 <main class="pico">
-  <h1>Single Feed Converter</h1>
+  <h1>Feed Converter</h1>
+  <form method="post" class="converter-form">
+    @Html.AntiForgeryToken()
+    <div class="converter-row">
+      <input
+        type="url"
+        name="FeedUrl"
+        value="@Model.FeedUrl"
+        placeholder="https://example.com/feed.xml"
+        aria-label="Feed URL"
+        required>
+      <button type="submit">Convert</button>
+    </div>
+  </form>
+  @if (Model.ErrorMessage is not null)
+  {
+    <p class="converter-error">@Model.ErrorMessage</p>
+  }
+  @if (Model.FilterUrl is not null)
+  {
+    <div class="converter-output">
+      <p class="page-description">Filtered feed URL</p>
+      <input type="text" value="@Model.FilterUrl" readonly>
+    </div>
+  }
 </main>

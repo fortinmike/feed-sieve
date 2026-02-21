@@ -18,6 +18,14 @@ var app = builder.Build();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseMiddleware<BasicAuthMiddleware>(
+    new BasicAuthOptions
+    {
+        Username = "admin",
+        Password = builder.Configuration["Secret"] ?? "",
+        ProtectedPathPrefixes = ["/admin"]
+    }
+);
 
 app.MapControllers();
 app.MapRazorPages();
@@ -25,8 +33,6 @@ app.MapRazorPages();
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation($"Application started!");
 logger.LogInformation($"Default rules contain {Rules.Load("rules.default.yaml").Count} entries.");
-logger.LogInformation(
-    $"Secret-Based Authentication: {(builder.Configuration["Secret"] == "" ? "Disabled" : "Enabled")}"
-);
+logger.LogInformation("Secret-Based Authentication: Enabled");
 
 app.Run();
