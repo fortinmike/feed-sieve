@@ -26,8 +26,16 @@
     @Html.AntiForgeryToken()
     <div class="converter-row">
       <div class="converter-file-box">
-        <input id="OpmlFile" name="OpmlFile" type="file" class="converter-file-input"
-               accept=".opml,.xml,text/xml,application/xml" aria-label="OPML file" required>
+        <input
+          id="OpmlFile"
+          name="OpmlFile"
+          type="file"
+          class="converter-file-input-native"
+          accept=".opml,.xml,text/xml,application/xml"
+          aria-label="OPML file"
+          aria-describedby="opml-file-name">
+        <label for="OpmlFile" class="converter-file-trigger">Choose File</label>
+        <span id="opml-file-name" class="converter-file-name">No file selected</span>
       </div>
       <button type="submit">Convert</button>
     </div>
@@ -44,3 +52,18 @@
     </div>
   }
 </main>
+<script>
+  (() => {
+    const fileInput = document.getElementById("OpmlFile");
+    const fileName = document.getElementById("opml-file-name");
+    if (!(fileInput instanceof HTMLInputElement))
+      return;
+    if (!(fileName instanceof HTMLElement))
+      return;
+
+    fileInput.addEventListener("change", () => {
+      const selectedFile = fileInput.files?.[0];
+      fileName.textContent = selectedFile?.name ?? "No file selected";
+    });
+  })();
+</script>

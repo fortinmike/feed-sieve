@@ -20,20 +20,59 @@
 .converter-file-box {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  height: 100%;
   border: var(--pico-border-width) solid var(--pico-form-element-border-color);
   border-radius: var(--pico-border-radius);
   background: var(--pico-form-element-background-color);
-  padding-inline-start: var(--pico-form-element-spacing-horizontal);
-  padding-inline-end: var(--pico-form-element-spacing-horizontal);
+  padding-inline-start: 10px;
+  padding-inline-end: 10px;
 }
 
-.converter-file-input {
-  width: 100%;
-  margin: 0;
+.converter-file-input-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
   border: 0;
   padding: 0;
-  background: transparent;
-  transform: translateY(8px);
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.converter-file-trigger {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  margin: 0;
+  border: var(--pico-border-width) solid var(--pico-form-element-border-color);
+  border-radius: var(--pico-border-radius);
+  background: var(--pico-form-element-selected-background-color);
+  color: var(--pico-color);
+  padding: 0.45rem 0.8rem;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.converter-file-trigger:hover {
+  background: var(--pico-form-element-active-background-color);
+}
+
+.converter-file-input-native:focus-visible + .converter-file-trigger {
+  outline: var(--pico-outline-width) solid var(--pico-primary-focus);
+  outline-offset: 2px;
+}
+
+.converter-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pico-muted-color);
 }
 
 .converter-output {
