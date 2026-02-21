@@ -27,11 +27,6 @@ public class FilterController : ControllerBase
         _cache = cache;
     }
 
-    public IActionResult Index()
-    {
-        return Content("feed-sieve is running!", "text/html");
-    }
-
     [HttpGet("filter")]
     public async Task<IActionResult> Filter([FromQuery] string url, [FromQuery] string? secret)
     {

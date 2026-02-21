@@ -25,3 +25,7 @@ html,
 body {
     font-family: var(--pico-font-family-sans-serif);
 }
+
+.page-title {
+    text-align: center;
+}
