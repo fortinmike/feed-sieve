@@ -30,6 +30,11 @@
       "command": "dotnet",
       "type": "process",
       "args": ["watch", "--project", "${workspaceFolder}/feed-sieve.csproj", "run"],
+      "options": {
+        "env": {
+          "ASPNETCORE_ENVIRONMENT": "Development"
+        }
+      },
       "isBackground": true,
       "problemMatcher": {
         "owner": "csharp",
