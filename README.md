@@ -11,7 +11,7 @@ A simple self-hosted RSS feed proxy that filters out unwanted items. It's useful
 
 - Setup simple rules to filter out anything you don't want to end up in your reader app
 - Match item title or content (or both) with regexes for maximum flexibility
-- Works will all RSS readers; just subscribe to feed-sieve's filter URL instead of the original feed URL
+- Works with all RSS readers; subscribe with feed-sieve's `/filter` URL instead of the original feed URL
 - Simple & no database; feeds are processed on-the-fly and cached when nothing changed since the last source fetch
 - Simple query-string based authentication to prevent use by unauthorized parties
 - More coming soon...
