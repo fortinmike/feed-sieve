@@ -1,6 +1,5 @@
 @{
   var pageTitle = ViewData["Title"] as string ?? "feed-sieve";
-  var bodyClass = ViewData["BodyClass"] as string ?? "";
 }
 
 <!DOCTYPE html>
@@ -15,7 +14,7 @@
   <link rel="stylesheet" href="/feed-sieve.styles.css">
   @await RenderSectionAsync("Head", required: false)
 </head>
-<body class="@bodyClass">
+<body>
   @RenderBody()
 </body>
 
