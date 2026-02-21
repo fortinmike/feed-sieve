@@ -29,8 +29,24 @@
       "label": "watch",
       "command": "dotnet",
       "type": "process",
-      "args": ["watch", "run", "--project", "${workspaceFolder}/feed-sieve.csproj"],
-      "problemMatcher": "$msCompile"
+      "args": ["watch", "--project", "${workspaceFolder}/feed-sieve.csproj", "run"],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "csharp",
+        "pattern": {
+          "regexp": "^(.*)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^dotnet watch",
+          "endsPattern": "\\bNow listening on:\\s+https?://\\S+"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
     },
     {
       "label": "Diff Original vs Modified Feed XML",
