@@ -29,7 +29,7 @@ public sealed class FailureStore
         Directory.CreateDirectory(dir);
         WriteState(dir, failureInfo);
         WriteInfo(dir, failureInfo);
-        System.IO.File.WriteAllText(Path.Combine(dir, "exception.log"), exception.ToString());
+        File.WriteAllText(Path.Combine(dir, "exception.log"), exception.ToString());
     }
 
     public void RecordParseFailure(string feedUrl, string feedXml, XmlException exception)
@@ -44,15 +44,15 @@ public sealed class FailureStore
         Directory.CreateDirectory(dir);
         WriteState(dir, failureInfo);
         WriteInfo(dir, failureInfo);
-        System.IO.File.WriteAllText(Path.Combine(dir, "feed.xml"), feedXml);
-        System.IO.File.WriteAllText(Path.Combine(dir, "exception.log"), exception.ToString());
+        File.WriteAllText(Path.Combine(dir, "feed.xml"), feedXml);
+        File.WriteAllText(Path.Combine(dir, "exception.log"), exception.ToString());
     }
 
     public void ClearFailure(string feedUrl)
     {
         var statePath = Path.Combine(GetFeedDirectory(feedUrl), "state.json");
-        if (System.IO.File.Exists(statePath))
-            System.IO.File.Delete(statePath);
+        if (File.Exists(statePath))
+            File.Delete(statePath);
     }
 
     public IReadOnlyList<Failure> GetCurrentFailures()
@@ -64,12 +64,12 @@ public sealed class FailureStore
         foreach (var dir in Directory.EnumerateDirectories(_directory.FullName))
         {
             var statePath = Path.Combine(dir, "state.json");
-            if (!System.IO.File.Exists(statePath))
+            if (!File.Exists(statePath))
                 continue;
 
             try
             {
-                var json = System.IO.File.ReadAllText(statePath);
+                var json = File.ReadAllText(statePath);
                 var state = JsonSerializer.Deserialize<Failure>(json);
                 if (state != null)
                     failures.Add(state);
@@ -81,6 +81,15 @@ public sealed class FailureStore
         }
 
         return failures;
+    }
+
+    public string? TryGetFeedXmlPreview(Failure failure)
+    {
+        var feedXmlPath = Path.Combine(GetFeedDirectory(failure.FeedUrl), "feed.xml");
+        if (!File.Exists(feedXmlPath))
+            return null;
+
+        return CreateFeedXmlPreview(File.ReadAllText(feedXmlPath));
     }
 
     private string GetFeedDirectory(string feedUrl)
@@ -109,23 +118,40 @@ public sealed class FailureStore
         );
 
         var json = JsonSerializer.Serialize(state, JsonOptions);
-        System.IO.File.WriteAllText(statePath, json);
+        File.WriteAllText(statePath, json);
     }
 
     private static Failure? ReadState(string statePath)
     {
-        if (!System.IO.File.Exists(statePath))
+        if (!File.Exists(statePath))
             return null;
 
         try
         {
-            var json = System.IO.File.ReadAllText(statePath);
+            var json = File.ReadAllText(statePath);
             return JsonSerializer.Deserialize<Failure>(json);
         }
         catch
         {
             return null;
         }
+    }
+
+    private static string CreateFeedXmlPreview(string feedXml)
+    {
+        using var reader = new StringReader(feedXml);
+        var previewLines = new List<string>();
+
+        for (var i = 0; i < 10; i++)
+        {
+            var line = reader.ReadLine();
+            if (line == null)
+                break;
+
+            previewLines.Add(line);
+        }
+
+        return string.Join(Environment.NewLine, previewLines);
     }
 
     private static void WriteInfo(string dir, UpstreamFailureInfo failureInfo)
@@ -164,7 +190,7 @@ public sealed class FailureStore
             info.AppendLine(failureInfo.ResponseBodyPreview);
         }
 
-        System.IO.File.WriteAllText(Path.Combine(dir, "info.txt"), info.ToString());
+        File.WriteAllText(Path.Combine(dir, "info.txt"), info.ToString());
     }
 
     private static string CreateUserMessage(UpstreamFailureInfo failureInfo)

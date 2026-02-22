@@ -1,5 +1,5 @@
-using System.ServiceModel.Syndication;
 using System.Net;
+using System.ServiceModel.Syndication;
 using System.Text;
 using System.Xml;
 using Microsoft.AspNetCore.Mvc;
@@ -26,10 +26,7 @@ public class FailuresController : ControllerBase
 
         var requestBaseUrl = $"{Request.Scheme}://{Request.Host}";
         var feedUrl = $"{requestBaseUrl}/failures";
-        var failures = _failureStore
-            .GetCurrentFailures()
-            .OrderByDescending(failure => failure.LastFailureUtc)
-            .ToList();
+        var failures = _failureStore.GetCurrentFailures().OrderByDescending(failure => failure.LastFailureUtc).ToList();
 
         var feed = new SyndicationFeed(
             "feed-sieve broken feeds",
@@ -42,10 +39,12 @@ public class FailuresController : ControllerBase
         feed.Items = failures.Select(CreateItem).ToList();
 
         using var stream = new MemoryStream();
-        using (var writer = XmlWriter.Create(
-            stream,
-            new XmlWriterSettings { Encoding = new UTF8Encoding(false), Indent = true }
-        ))
+        using (
+            var writer = XmlWriter.Create(
+                stream,
+                new XmlWriterSettings { Encoding = new UTF8Encoding(false), Indent = true }
+            )
+        )
         {
             new Rss20FeedFormatter(feed).WriteTo(writer);
         }
@@ -53,7 +52,7 @@ public class FailuresController : ControllerBase
         return File(stream.ToArray(), "application/rss+xml; charset=utf-8");
     }
 
-    private static SyndicationItem CreateItem(Failure failure)
+    private SyndicationItem CreateItem(Failure failure)
     {
         var title = failure.HttpStatusCode is { } statusCode
             ? $"HTTP {statusCode}: {failure.FeedUrl}"
@@ -74,7 +73,7 @@ public class FailuresController : ControllerBase
         return item;
     }
 
-    private static string CreateSummaryHtml(Failure failure)
+    private string CreateSummaryHtml(Failure failure)
     {
         var html = new StringBuilder();
 
@@ -88,8 +87,14 @@ public class FailuresController : ControllerBase
         }
 
         AppendParagraph(html, $"<strong>{Encode("Reason")}</strong><br>{Encode(failure.Message)}");
-        AppendParagraph(html, $"<strong>{Encode("First failure")}</strong><br><code>{Encode(failure.FirstFailureUtc.ToString("O"))}</code>");
-        AppendParagraph(html, $"<strong>{Encode("Last failure")}</strong><br><code>{Encode(failure.LastFailureUtc.ToString("O"))}</code>");
+        AppendParagraph(
+            html,
+            $"<strong>{Encode("First failure")}</strong><br><code>{Encode(failure.FirstFailureUtc.ToString("O"))}</code>"
+        );
+        AppendParagraph(
+            html,
+            $"<strong>{Encode("Last failure")}</strong><br><code>{Encode(failure.LastFailureUtc.ToString("O"))}</code>"
+        );
         AppendParagraph(html, $"<strong>{Encode("Failure count")}</strong><br>{failure.FailureCount}");
 
         if (!string.IsNullOrWhiteSpace(failure.FinalUrl))
@@ -106,6 +111,14 @@ public class FailuresController : ControllerBase
                 html.Append("</li>");
             }
             html.Append("</ul>");
+        }
+
+        if (_failureStore.TryGetFeedXmlPreview(failure) is string feedXmlPreview)
+        {
+            html.Append("<p><strong>Feed Preview (first 10 lines)</strong></p>");
+            html.Append("<pre><code>");
+            html.Append(Encode(feedXmlPreview));
+            html.Append("</code></pre>");
         }
 
         return html.ToString();
