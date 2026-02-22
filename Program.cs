@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging.Console;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add an additional config layer with our secrets
@@ -9,7 +11,8 @@ builder.Services.AddControllers();
 builder.Services.AddRazorPages();
 builder.Services.AddLogging();
 builder.Logging.ClearProviders();
-builder.Logging.AddSimpleConsole(options => options.SingleLine = true);
+builder.Logging.AddConsole(options => options.FormatterName = MessageOnlyConsoleFormatter.FormatterName);
+builder.Logging.AddConsoleFormatter<MessageOnlyConsoleFormatter, ConsoleFormatterOptions>();
 
 // Register our own services (for the app's logic)
 builder.Services.AddSingleton(new Cache(new DirectoryInfo("cache")));
