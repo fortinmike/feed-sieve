@@ -1,4 +1,5 @@
 using System.Web;
+using System.Xml;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
 
@@ -53,13 +54,22 @@ public class FilterController : ControllerBase
             var httpClient = _httpClientFactory.CreateClient();
             originalRss = await httpClient.GetStringAsync(feedUrl, HttpContext.RequestAborted);
         }
+        catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            // Client disconnected while we were fetching the upstream feed
+            return new EmptyResult();
+        }
         catch (OperationCanceledException ex) when (!HttpContext.RequestAborted.IsCancellationRequested)
         {
+            WriteExceptionLogOutput(feedUrl, ex);
+            WriteErrorInfoOutput(feedUrl);
             _logger.LogWarning(ex, "Timeout while fetching upstream feed {FeedUrl}", feedUrl);
             return StatusCode(StatusCodes.Status504GatewayTimeout);
         }
         catch (HttpRequestException ex)
         {
+            WriteExceptionLogOutput(feedUrl, ex);
+            WriteErrorInfoOutput(feedUrl);
             _logger.LogWarning(ex, "Failed to fetch upstream feed {FeedUrl}", feedUrl);
             return StatusCode(StatusCodes.Status502BadGateway);
         }
@@ -78,31 +88,68 @@ public class FilterController : ControllerBase
         if (cacheEnabled && cachedRss != null)
         {
             // Return the cached RSS document
-            WriteOutputInDevMode(originalRss, cachedRss);
+            WriteLogsInDevMode(originalRss, cachedRss);
             _logger.LogInformation($"Returned cached RSS for feed {feedUrl} because nothing changed");
             return Content(cachedRss, "application/rss+xml");
         }
         else
         {
-            // Modify the original RSS document by processing it with the loaded rules
-            var originalDocument = XDocument.Parse(originalRss);
-            var modifiedDocument = _processor.Process(originalDocument, rules, feedUrl);
-            var modifiedRss = modifiedDocument.ToString();
-            if (cacheEnabled)
-                _cache.Set(feedUrl, hash, modifiedRss);
-            WriteOutputInDevMode(originalRss, modifiedRss);
-            return Content(modifiedRss, "application/rss+xml");
+            try
+            {
+                // Modify the original RSS document by processing it with the loaded rules
+                var originalDocument = XDocument.Parse(originalRss);
+                var modifiedDocument = _processor.Process(originalDocument, rules, feedUrl);
+                var modifiedRss = modifiedDocument.ToString();
+                if (cacheEnabled)
+                    _cache.Set(feedUrl, hash, modifiedRss);
+                WriteLogsInDevMode(originalRss, modifiedRss);
+                return Content(modifiedRss, "application/rss+xml");
+            }
+            catch (XmlException ex)
+            {
+                WriteParseErrorOutput(feedUrl, originalRss, ex);
+                _logger.LogWarning(
+                    ex,
+                    "Invalid XML from upstream feed {FeedUrl} at line {LineNumber}, position {LinePosition}",
+                    feedUrl,
+                    ex.LineNumber,
+                    ex.LinePosition
+                );
+                return StatusCode(StatusCodes.Status502BadGateway);
+            }
         }
     }
 
-    private void WriteOutputInDevMode(string original, string modified)
+    private void WriteLogsInDevMode(string original, string modified)
     {
         if (_env.IsDevelopment())
         {
-            var dir = "./output";
+            var dir = "./logs";
             Directory.CreateDirectory(dir);
             System.IO.File.WriteAllText($"{dir}/original.xml", original);
             System.IO.File.WriteAllText($"{dir}/modified.xml", modified);
         }
+    }
+
+    private void WriteParseErrorOutput(string feedUrl, string feedXml, XmlException exception)
+    {
+        var dir = Path.Combine("./logs", "errors", feedUrl.ToSafeFileName());
+        Directory.CreateDirectory(dir);
+        System.IO.File.WriteAllText(Path.Combine(dir, "feed.xml"), feedXml);
+        WriteExceptionLogOutput(feedUrl, exception);
+    }
+
+    private void WriteExceptionLogOutput(string feedUrl, Exception exception)
+    {
+        var dir = Path.Combine("./logs", "errors", feedUrl.ToSafeFileName());
+        Directory.CreateDirectory(dir);
+        System.IO.File.WriteAllText(Path.Combine(dir, "exception.log"), exception.ToString());
+    }
+
+    private void WriteErrorInfoOutput(string feedUrl)
+    {
+        var dir = Path.Combine("./logs", "errors", feedUrl.ToSafeFileName());
+        Directory.CreateDirectory(dir);
+        System.IO.File.WriteAllText(Path.Combine(dir, "info.txt"), feedUrl);
     }
 }

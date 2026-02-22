@@ -3,7 +3,7 @@ manual.local.http
 rules.default.yaml
 appsettings.Local.json
 /cache/
-/output/
+/logs/
 
 /bin/
 /obj/
