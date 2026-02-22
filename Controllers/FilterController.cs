@@ -124,7 +124,7 @@ public class FilterController : ControllerBase
             try
             {
                 // Modify the original RSS document by processing it with the loaded rules
-                var originalDocument = XDocument.Parse(originalRss);
+                var originalDocument = XDocument.Parse(originalRss.TrimStart());
                 var modifiedDocument = _processor.Process(originalDocument, rules, feedUrl);
                 var modifiedRss = modifiedDocument.ToString();
                 _cache.Set(feedUrl, hash, modifiedRss);
