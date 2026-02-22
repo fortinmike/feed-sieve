@@ -1,0 +1,28 @@
+using System.Net;
+
+public sealed record UpstreamFailureInfo(
+    string FeedUrl,
+    string FailureType,
+    string Message,
+    string? FinalUrl = null,
+    HttpStatusCode? HttpStatusCode = null,
+    string? HttpReasonPhrase = null,
+    IReadOnlyList<string>? Redirects = null,
+    IReadOnlyList<string>? ResponseHeaders = null,
+    string? ResponseBodyPreview = null
+)
+{
+    public static UpstreamFailureInfo FromException(string feedUrl, Exception exception)
+    {
+        HttpStatusCode? statusCode = null;
+        if (exception is HttpRequestException httpRequestException)
+            statusCode = httpRequestException.StatusCode;
+
+        return new UpstreamFailureInfo(
+            FeedUrl: feedUrl,
+            FailureType: exception.GetType().FullName ?? exception.GetType().Name,
+            Message: exception.Message,
+            HttpStatusCode: statusCode
+        );
+    }
+}

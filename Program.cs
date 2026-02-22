@@ -23,7 +23,11 @@ builder.Services.AddHttpClient(
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json", 0.7));
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*", 0.5));
     }
-);
+).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    // We follow redirects manually in FilterController so HTTPS->HTTP feed redirects can still work
+    AllowAutoRedirect = false
+});
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();
 builder.Services.AddLogging();
@@ -33,6 +37,7 @@ builder.Logging.AddConsoleFormatter<MessageOnlyConsoleFormatter, ConsoleFormatte
 
 // Register our own services (for the app's logic)
 builder.Services.AddSingleton(new Cache(new DirectoryInfo("cache")));
+builder.Services.AddSingleton<UpstreamFeedClient>();
 builder.Services.AddScoped<Processor>();
 builder.Services.AddScoped<IFilter, RegexFilter>();
 builder.Services.AddSingleton<FilterUrlBuilder>();
