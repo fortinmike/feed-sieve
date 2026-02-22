@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using Microsoft.Extensions.Logging.Console;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,7 +8,22 @@ builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, relo
 
 // Register core services
 // Fail fast before feed readers (for example NetNewsWire at ~15s with 1 connection per host) time out and stall their queue
-builder.Services.AddHttpClient("upstream-feed", client => client.Timeout = TimeSpan.FromSeconds(10));
+builder.Services.AddHttpClient(
+    "upstream-feed",
+    client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(10);
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("feed-sieve (RSS Reader)");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("NetNewsWire (RSS Reader; https://netnewswire.com/)");
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/rss+xml"));
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/atom+xml"));
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/feed+json"));
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/xml", 0.9));
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/xml", 0.8));
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json", 0.7));
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*", 0.5));
+    }
+);
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();
 builder.Services.AddLogging();
