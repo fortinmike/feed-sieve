@@ -1,3 +1,4 @@
 @host = http://localhost:6677
+@secret = replace_this_secret
 
-GET {{host}}/filter?url=https://eclecticlight.co/category/macs/feed/
+GET {{host}}/filter?url=https://eclecticlight.co/category/macs/feed/&secret={{secret}}

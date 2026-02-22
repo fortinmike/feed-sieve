@@ -6,7 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 // Register core services
-builder.Services.AddHttpClient();
+// Fail fast before feed readers (for example NetNewsWire at ~15s with 1 connection per host) time out and stall their queue
+builder.Services.AddHttpClient("upstream-feed", client => client.Timeout = TimeSpan.FromSeconds(10));
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();
 builder.Services.AddLogging();

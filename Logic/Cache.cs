@@ -24,6 +24,16 @@ public class Cache
         return File.ReadAllText(valueFile);
     }
 
+    public string? GetLast(string key)
+    {
+        var (_, valueFile, _) = GetPaths(key);
+
+        if (!File.Exists(valueFile))
+            return null;
+
+        return File.ReadAllText(valueFile);
+    }
+
     public void Set(string key, string hash, string value)
     {
         var (subDir, valueFile, hashFile) = GetPaths(key);

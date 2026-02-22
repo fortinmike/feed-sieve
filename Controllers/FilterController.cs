@@ -45,13 +45,15 @@ public class FilterController : ControllerBase
         }
 
         var ruleset = "default";
+        var returnCachedFeedOnUpstreamFailure =
+            _configuration.GetValue<bool?>("ReturnCachedFeedOnUpstreamFailure") ?? !_env.IsDevelopment();
 
         // Fetch the RSS feed XML and get the XML
         var feedUrl = HttpUtility.UrlDecode(url);
         string originalRss;
         try
         {
-            var httpClient = _httpClientFactory.CreateClient();
+            var httpClient = _httpClientFactory.CreateClient("upstream-feed");
             originalRss = await httpClient.GetStringAsync(feedUrl, HttpContext.RequestAborted);
         }
         catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
@@ -64,6 +66,11 @@ public class FilterController : ControllerBase
             WriteExceptionLogOutput(feedUrl, ex);
             WriteErrorInfoOutput(feedUrl);
             _logger.LogWarning(ex, "Timeout while fetching upstream feed {FeedUrl}", feedUrl);
+            if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedResponse)
+            {
+                _logger.LogWarning(ex, "Returned cached RSS");
+                return cachedResponse;
+            }
             return StatusCode(StatusCodes.Status504GatewayTimeout);
         }
         catch (HttpRequestException ex)
@@ -71,6 +78,11 @@ public class FilterController : ControllerBase
             WriteExceptionLogOutput(feedUrl, ex);
             WriteErrorInfoOutput(feedUrl);
             _logger.LogWarning(ex, "Failed to fetch upstream feed {FeedUrl}", feedUrl);
+            if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedResponse)
+            {
+                _logger.LogWarning(ex, "Returned cached RSS");
+                return cachedResponse;
+            }
             return StatusCode(StatusCodes.Status502BadGateway);
         }
 
@@ -82,10 +94,9 @@ public class FilterController : ControllerBase
         var rulesHash = rulesString.Hash();
         var hash = rssHash + rulesHash;
 
-        // Results are cached as long as neither the original RSS nor the rules string change
-        var cacheEnabled = _configuration["Cache"] == "True";
+        // Results are cached as long as neither the original RSS nor the rules string have changed
         var cachedRss = _cache.Get(feedUrl, hash);
-        if (cacheEnabled && cachedRss != null)
+        if (cachedRss != null)
         {
             // Return the cached RSS document
             WriteLogsInDevMode(originalRss, cachedRss);
@@ -100,8 +111,7 @@ public class FilterController : ControllerBase
                 var originalDocument = XDocument.Parse(originalRss);
                 var modifiedDocument = _processor.Process(originalDocument, rules, feedUrl);
                 var modifiedRss = modifiedDocument.ToString();
-                if (cacheEnabled)
-                    _cache.Set(feedUrl, hash, modifiedRss);
+                _cache.Set(feedUrl, hash, modifiedRss);
                 WriteLogsInDevMode(originalRss, modifiedRss);
                 return Content(modifiedRss, "application/rss+xml");
             }
@@ -151,5 +161,13 @@ public class FilterController : ControllerBase
         var dir = Path.Combine("./logs", "errors", feedUrl.ToSafeFileName());
         Directory.CreateDirectory(dir);
         System.IO.File.WriteAllText(Path.Combine(dir, "info.txt"), feedUrl);
+    }
+
+    private ContentResult? CreateCachedResponse(string feedUrl)
+    {
+        if (_cache.GetLast(feedUrl) is string cachedRss)
+            return Content(cachedRss, "application/rss+xml");
+
+        return null;
     }
 }
