@@ -25,7 +25,7 @@ builder.Services.AddHttpClient(
     }
 ).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
 {
-    // We follow redirects manually in FilterController so HTTPS->HTTP feed redirects can still work
+    // We follow redirects manually in UpstreamFeedClient so HTTPS->HTTP feed redirects can still work
     AllowAutoRedirect = false
 });
 builder.Services.AddControllers();
@@ -36,7 +36,8 @@ builder.Logging.AddConsole(options => options.FormatterName = MessageOnlyConsole
 builder.Logging.AddConsoleFormatter<MessageOnlyConsoleFormatter, ConsoleFormatterOptions>();
 
 // Register our own services (for the app's logic)
-builder.Services.AddSingleton(new Cache(new DirectoryInfo("cache")));
+builder.Services.AddSingleton(new Cache(new DirectoryInfo("./storage/cache")));
+builder.Services.AddSingleton(new FailureStore(new DirectoryInfo("./storage/failures")));
 builder.Services.AddSingleton<UpstreamFeedClient>();
 builder.Services.AddScoped<Processor>();
 builder.Services.AddScoped<IFilter, RegexFilter>();

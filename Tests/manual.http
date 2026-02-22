@@ -2,3 +2,7 @@
 @secret = replace_this_secret
 
 GET {{host}}/filter?url=https://eclecticlight.co/category/macs/feed/&secret={{secret}}
+
+###
+
+GET {{host}}/failures?secret={{secret}}

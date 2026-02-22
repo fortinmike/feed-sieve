@@ -1,4 +1,3 @@
-using System.Text;
 using System.Web;
 using System.Xml;
 using System.Xml.Linq;
@@ -14,6 +13,7 @@ public class FilterController : ControllerBase
     private readonly UpstreamFeedClient _upstreamFeedClient;
     private readonly Processor _processor;
     private readonly Cache _cache;
+    private readonly FailureStore _failureStore;
 
     public FilterController(
         IWebHostEnvironment env,
@@ -21,7 +21,8 @@ public class FilterController : ControllerBase
         ILogger<FilterController> logger,
         UpstreamFeedClient upstreamFeedClient,
         Processor processor,
-        Cache cache
+        Cache cache,
+        FailureStore failureStore
     )
     {
         _env = env;
@@ -30,6 +31,7 @@ public class FilterController : ControllerBase
         _upstreamFeedClient = upstreamFeedClient;
         _processor = processor;
         _cache = cache;
+        _failureStore = failureStore;
     }
 
     [HttpGet("filter")]
@@ -63,7 +65,7 @@ public class FilterController : ControllerBase
         }
         catch (UpstreamHttpStatusException ex)
         {
-            WriteErrorInfoOutput(ex.FailureInfo);
+            _failureStore.RecordFailure(ex.FailureInfo, ex);
             _logger.LogWarning(
                 "Upstream feed returned HTTP {StatusCode} for {FeedUrl}",
                 (int?)ex.FailureInfo.HttpStatusCode,
@@ -78,8 +80,7 @@ public class FilterController : ControllerBase
         }
         catch (OperationCanceledException ex) when (!HttpContext.RequestAborted.IsCancellationRequested)
         {
-            WriteExceptionLogOutput(feedUrl, ex);
-            WriteErrorInfoOutput(UpstreamFailureInfo.FromException(feedUrl, ex));
+            _failureStore.RecordFailure(UpstreamFailureInfo.FromException(feedUrl, ex), ex);
             _logger.LogWarning(ex, "Timeout while fetching upstream feed {FeedUrl}", feedUrl);
             if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedResponse)
             {
@@ -90,8 +91,7 @@ public class FilterController : ControllerBase
         }
         catch (HttpRequestException ex)
         {
-            WriteExceptionLogOutput(feedUrl, ex);
-            WriteErrorInfoOutput(UpstreamFailureInfo.FromException(feedUrl, ex));
+            _failureStore.RecordFailure(UpstreamFailureInfo.FromException(feedUrl, ex), ex);
             _logger.LogWarning(ex, "Failed to fetch upstream feed {FeedUrl}", feedUrl);
             if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedResponse)
             {
@@ -114,7 +114,8 @@ public class FilterController : ControllerBase
         if (cachedRss != null)
         {
             // Return the cached RSS document
-            WriteLogsInDevMode(originalRss, cachedRss);
+            _failureStore.ClearFailure(feedUrl);
+            WriteDebugFilesInDevMode(originalRss, cachedRss);
             _logger.LogInformation($"Returned cached RSS for feed {feedUrl} because nothing changed");
             return Content(cachedRss, "application/rss+xml");
         }
@@ -127,12 +128,13 @@ public class FilterController : ControllerBase
                 var modifiedDocument = _processor.Process(originalDocument, rules, feedUrl);
                 var modifiedRss = modifiedDocument.ToString();
                 _cache.Set(feedUrl, hash, modifiedRss);
-                WriteLogsInDevMode(originalRss, modifiedRss);
+                _failureStore.ClearFailure(feedUrl);
+                WriteDebugFilesInDevMode(originalRss, modifiedRss);
                 return Content(modifiedRss, "application/rss+xml");
             }
             catch (XmlException ex)
             {
-                WriteParseErrorOutput(feedUrl, originalRss, ex);
+                _failureStore.RecordParseFailure(feedUrl, originalRss, ex);
                 _logger.LogWarning(
                     ex,
                     "Invalid XML from upstream feed {FeedUrl} at line {LineNumber}, position {LinePosition}",
@@ -145,71 +147,15 @@ public class FilterController : ControllerBase
         }
     }
 
-    private void WriteLogsInDevMode(string original, string modified)
+    private void WriteDebugFilesInDevMode(string original, string modified)
     {
         if (_env.IsDevelopment())
         {
-            var dir = "./logs";
+            var dir = "./storage/debug";
             Directory.CreateDirectory(dir);
             System.IO.File.WriteAllText($"{dir}/original.xml", original);
             System.IO.File.WriteAllText($"{dir}/modified.xml", modified);
         }
-    }
-
-    private void WriteParseErrorOutput(string feedUrl, string feedXml, XmlException exception)
-    {
-        var dir = Path.Combine("./logs", "errors", feedUrl.ToSafeFileName());
-        Directory.CreateDirectory(dir);
-        System.IO.File.WriteAllText(Path.Combine(dir, "feed.xml"), feedXml);
-        WriteExceptionLogOutput(feedUrl, exception);
-    }
-
-    private void WriteExceptionLogOutput(string feedUrl, Exception exception)
-    {
-        var dir = Path.Combine("./logs", "errors", feedUrl.ToSafeFileName());
-        Directory.CreateDirectory(dir);
-        System.IO.File.WriteAllText(Path.Combine(dir, "exception.log"), exception.ToString());
-    }
-
-    private void WriteErrorInfoOutput(UpstreamFailureInfo failureInfo)
-    {
-        var dir = Path.Combine("./logs", "errors", failureInfo.FeedUrl.ToSafeFileName());
-        Directory.CreateDirectory(dir);
-        var info = new StringBuilder();
-        info.AppendLine($"Feed URL: {failureInfo.FeedUrl}");
-        info.AppendLine($"Failure: {failureInfo.FailureType}");
-        info.AppendLine($"Message: {failureInfo.Message}");
-
-        if (failureInfo.FinalUrl != null)
-            info.AppendLine($"Final URL: {failureInfo.FinalUrl}");
-
-        if (failureInfo.HttpStatusCode is { } statusCode)
-            info.AppendLine($"HTTP Status: {(int)statusCode} {failureInfo.HttpReasonPhrase ?? statusCode.ToString()}");
-
-        if (failureInfo.Redirects is { Count: > 0 })
-        {
-            info.AppendLine();
-            info.AppendLine("Redirects:");
-            foreach (var redirect in failureInfo.Redirects)
-                info.AppendLine(redirect);
-        }
-
-        if (failureInfo.ResponseHeaders is { Count: > 0 })
-        {
-            info.AppendLine();
-            info.AppendLine("Response headers:");
-            foreach (var header in failureInfo.ResponseHeaders)
-                info.AppendLine(header);
-        }
-
-        if (!string.IsNullOrEmpty(failureInfo.ResponseBodyPreview))
-        {
-            info.AppendLine();
-            info.AppendLine("Response body preview:");
-            info.AppendLine(failureInfo.ResponseBodyPreview);
-        }
-
-        System.IO.File.WriteAllText(Path.Combine(dir, "info.txt"), info.ToString());
     }
 
     private ContentResult? CreateCachedResponse(string feedUrl)

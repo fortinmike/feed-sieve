@@ -2,8 +2,7 @@
 manual.local.http
 rules.default.yaml
 appsettings.Local.json
-/cache/
-/logs/
+/storage/
 
 /bin/
 /obj/
@@ -283,4 +282,3 @@ __pycache__/
 # tools/
 
 # End of https://www.toptal.com/developers/gitignore/api/aspnetcore
-
