@@ -9,6 +9,7 @@ using Stopwatch = System.Diagnostics.Stopwatch;
 public class FilterController : ControllerBase
 {
     private const long RequestDurationWarningThresholdMs = 10_000;
+    private static int _inFlightRequests;
 
     private readonly IWebHostEnvironment _env;
     private readonly IConfiguration _configuration;
@@ -42,6 +43,7 @@ public class FilterController : ControllerBase
     {
         var feedUrl = HttpUtility.UrlDecode(url);
         var stopwatch = Stopwatch.StartNew();
+        Interlocked.Increment(ref _inFlightRequests);
         var outcome = "unhandled";
         int? statusCode = null;
 
@@ -178,29 +180,32 @@ public class FilterController : ControllerBase
         }
         finally
         {
-            LogRequestDuration(feedUrl, outcome, statusCode, stopwatch.ElapsedMilliseconds);
+            var inFlightAfter = Interlocked.Decrement(ref _inFlightRequests);
+            LogRequestDuration(feedUrl, outcome, statusCode, stopwatch.ElapsedMilliseconds, inFlightAfter);
         }
     }
 
-    private void LogRequestDuration(string feedUrl, string outcome, int? statusCode, long elapsedMs)
+    private void LogRequestDuration(string feedUrl, string outcome, int? statusCode, long elapsedMs, int inFlightAfter)
     {
         if (elapsedMs > RequestDurationWarningThresholdMs)
         {
             _logger.LogWarning(
-                "Completed in {ElapsedMs}ms ({Outcome}, {StatusCode}) for {FeedUrl}",
+                "Completed in {ElapsedMs}ms ({Outcome}, {StatusCode}, inFlightAfter={InFlightAfter}) for {FeedUrl}",
                 elapsedMs,
                 outcome,
                 statusCode,
+                inFlightAfter,
                 feedUrl
             );
             return;
         }
 
         _logger.LogInformation(
-            "Completed in {ElapsedMs}ms ({Outcome}, {StatusCode}) for {FeedUrl}",
+            "Completed in {ElapsedMs}ms ({Outcome}, {StatusCode}, inFlightAfter={InFlightAfter}) for {FeedUrl}",
             elapsedMs,
             outcome,
             statusCode,
+            inFlightAfter,
             feedUrl
         );
     }
