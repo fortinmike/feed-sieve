@@ -2,11 +2,14 @@ using System.Web;
 using System.Xml;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Stopwatch = System.Diagnostics.Stopwatch;
 
 [ApiController]
 [Route("/")]
 public class FilterController : ControllerBase
 {
+    private const long RequestDurationWarningThresholdMs = 10_000;
+
     private readonly IWebHostEnvironment _env;
     private readonly IConfiguration _configuration;
     private readonly ILogger<FilterController> _logger;
@@ -37,90 +40,114 @@ public class FilterController : ControllerBase
     [HttpGet("filter")]
     public async Task<IActionResult> Filter([FromQuery] string url, [FromQuery] string? secret)
     {
-        var correctSecret = _configuration["Secret"];
-        if (correctSecret != "" && secret != correctSecret)
+        var feedUrl = HttpUtility.UrlDecode(url);
+        var stopwatch = Stopwatch.StartNew();
+        var outcome = "unhandled";
+        int? statusCode = null;
+
+        IActionResult Complete(IActionResult result, string completedOutcome, int completedStatusCode)
         {
-            var attemptedSecret = secret == null ? "no secret" : $"attempted secret '{secret}'";
-            _logger.LogWarning(
-                $"Unauthorized access attempted by {HttpContext.Connection.RemoteIpAddress} with {attemptedSecret}"
-            );
-            return Unauthorized();
+            outcome = completedOutcome;
+            statusCode = completedStatusCode;
+            return result;
         }
 
-        var ruleset = "default";
-        var returnCachedFeedOnUpstreamFailure =
-            _configuration.GetValue<bool?>("ReturnCachedFeedOnUpstreamFailure") ?? !_env.IsDevelopment();
-
-        // Fetch the RSS feed XML and get the XML
-        var feedUrl = HttpUtility.UrlDecode(url);
-        string originalRss;
         try
         {
-            originalRss = await _upstreamFeedClient.GetStringAsync(feedUrl, HttpContext.RequestAborted);
-        }
-        catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
-        {
-            // Client disconnected while we were fetching the upstream feed
-            return new EmptyResult();
-        }
-        catch (UpstreamHttpStatusException ex)
-        {
-            _failureStore.RecordFailure(ex.FailureInfo, ex);
-            _logger.LogWarning(
-                "Upstream feed returned HTTP {StatusCode} for {FeedUrl}",
-                (int?)ex.FailureInfo.HttpStatusCode,
-                feedUrl
-            );
-            if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedResponse)
+            var correctSecret = _configuration["Secret"];
+            if (correctSecret != "" && secret != correctSecret)
             {
-                _logger.LogWarning("Returned cached RSS");
-                return cachedResponse;
+                var attemptedSecret = secret == null ? "no secret" : $"attempted secret '{secret}'";
+                _logger.LogWarning(
+                    $"Unauthorized access attempted by {HttpContext.Connection.RemoteIpAddress} with {attemptedSecret}"
+                );
+                return Complete(Unauthorized(), "unauthorized", StatusCodes.Status401Unauthorized);
             }
-            return StatusCode(StatusCodes.Status502BadGateway);
-        }
-        catch (OperationCanceledException ex) when (!HttpContext.RequestAborted.IsCancellationRequested)
-        {
-            _failureStore.RecordFailure(UpstreamFailureInfo.FromException(feedUrl, ex), ex);
-            _logger.LogWarning(ex, "Timeout while fetching upstream feed {FeedUrl}", feedUrl);
-            if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedResponse)
+
+            var ruleset = "default";
+            var returnCachedFeedOnUpstreamFailure =
+                _configuration.GetValue<bool?>("ReturnCachedFeedOnUpstreamFailure") ?? !_env.IsDevelopment();
+
+            // Fetch the RSS feed XML and get the XML
+            string originalRss;
+            try
             {
-                _logger.LogWarning(ex, "Returned cached RSS");
-                return cachedResponse;
+                originalRss = await _upstreamFeedClient.GetStringAsync(feedUrl, HttpContext.RequestAborted);
             }
-            return StatusCode(StatusCodes.Status504GatewayTimeout);
-        }
-        catch (HttpRequestException ex)
-        {
-            _failureStore.RecordFailure(UpstreamFailureInfo.FromException(feedUrl, ex), ex);
-            _logger.LogWarning(ex, "Failed to fetch upstream feed {FeedUrl}", feedUrl);
-            if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedResponse)
+            catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
             {
-                _logger.LogWarning(ex, "Returned cached RSS");
-                return cachedResponse;
+                // Client disconnected while we were fetching the upstream feed
+                return Complete(new EmptyResult(), "client-canceled", StatusCodes.Status200OK);
             }
-            return StatusCode(StatusCodes.Status502BadGateway);
-        }
+            catch (UpstreamHttpStatusException ex)
+            {
+                _failureStore.RecordFailure(ex.FailureInfo, ex);
+                _logger.LogWarning(
+                    "Upstream feed returned HTTP {StatusCode} for {FeedUrl}",
+                    (int?)ex.FailureInfo.HttpStatusCode,
+                    feedUrl
+                );
+                if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedResponse)
+                {
+                    _logger.LogWarning("Returned cached RSS");
+                    return Complete(cachedResponse, "upstream-http-cached", StatusCodes.Status200OK);
+                }
+                return Complete(
+                    StatusCode(StatusCodes.Status502BadGateway),
+                    "upstream-http",
+                    StatusCodes.Status502BadGateway
+                );
+            }
+            catch (OperationCanceledException ex) when (!HttpContext.RequestAborted.IsCancellationRequested)
+            {
+                _failureStore.RecordFailure(UpstreamFailureInfo.FromException(feedUrl, ex), ex);
+                _logger.LogWarning(ex, "Timeout while fetching upstream feed {FeedUrl}", feedUrl);
+                if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedResponse)
+                {
+                    _logger.LogWarning(ex, "Returned cached RSS");
+                    return Complete(cachedResponse, "timeout-cached", StatusCodes.Status200OK);
+                }
+                return Complete(
+                    StatusCode(StatusCodes.Status504GatewayTimeout),
+                    "timeout",
+                    StatusCodes.Status504GatewayTimeout
+                );
+            }
+            catch (HttpRequestException ex)
+            {
+                _failureStore.RecordFailure(UpstreamFailureInfo.FromException(feedUrl, ex), ex);
+                _logger.LogWarning(ex, "Failed to fetch upstream feed {FeedUrl}", feedUrl);
+                if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedResponse)
+                {
+                    _logger.LogWarning(ex, "Returned cached RSS");
+                    return Complete(cachedResponse, "fetch-error-cached", StatusCodes.Status200OK);
+                }
+                return Complete(
+                    StatusCode(StatusCodes.Status502BadGateway),
+                    "fetch-error",
+                    StatusCodes.Status502BadGateway
+                );
+            }
 
-        // Load the rules
-        var rulesString = System.IO.File.ReadAllText($"rules.{ruleset}.yaml");
-        var rules = Rules.Parse(rulesString);
+            // Load the rules
+            var rulesString = System.IO.File.ReadAllText($"rules.{ruleset}.yaml");
+            var rules = Rules.Parse(rulesString);
 
-        var rssHash = originalRss.Hash();
-        var rulesHash = rulesString.Hash();
-        var hash = rssHash + rulesHash;
+            var rssHash = originalRss.Hash();
+            var rulesHash = rulesString.Hash();
+            var hash = rssHash + rulesHash;
 
-        // Results are cached as long as neither the original RSS nor the rules string have changed
-        var cachedRss = _cache.Get(feedUrl, hash);
-        if (cachedRss != null)
-        {
-            // Return the cached RSS document
-            _failureStore.ClearFailure(feedUrl);
-            WriteDebugFilesInDevMode(originalRss, cachedRss);
-            _logger.LogInformation($"Returned cached RSS for feed {feedUrl} because nothing changed");
-            return Content(cachedRss, "application/rss+xml");
-        }
-        else
-        {
+            // Results are cached as long as neither the original RSS nor the rules string have changed
+            var cachedRss = _cache.Get(feedUrl, hash);
+            if (cachedRss != null)
+            {
+                // Return the cached RSS document
+                _failureStore.ClearFailure(feedUrl);
+                WriteDebugFilesInDevMode(originalRss, cachedRss);
+                _logger.LogInformation($"Returned cached RSS for feed {feedUrl} because nothing changed");
+                return Complete(Content(cachedRss, "application/rss+xml"), "cache-hit", StatusCodes.Status200OK);
+            }
+
             try
             {
                 // Modify the original RSS document by processing it with the loaded rules
@@ -130,7 +157,7 @@ public class FilterController : ControllerBase
                 _cache.Set(feedUrl, hash, modifiedRss);
                 _failureStore.ClearFailure(feedUrl);
                 WriteDebugFilesInDevMode(originalRss, modifiedRss);
-                return Content(modifiedRss, "application/rss+xml");
+                return Complete(Content(modifiedRss, "application/rss+xml"), "processed", StatusCodes.Status200OK);
             }
             catch (XmlException ex)
             {
@@ -142,9 +169,40 @@ public class FilterController : ControllerBase
                     ex.LineNumber,
                     ex.LinePosition
                 );
-                return StatusCode(StatusCodes.Status502BadGateway);
+                return Complete(
+                    StatusCode(StatusCodes.Status502BadGateway),
+                    "xml-parse-error",
+                    StatusCodes.Status502BadGateway
+                );
             }
         }
+        finally
+        {
+            LogRequestDuration(feedUrl, outcome, statusCode, stopwatch.ElapsedMilliseconds);
+        }
+    }
+
+    private void LogRequestDuration(string feedUrl, string outcome, int? statusCode, long elapsedMs)
+    {
+        if (elapsedMs > RequestDurationWarningThresholdMs)
+        {
+            _logger.LogWarning(
+                "Completed in {ElapsedMs}ms ({Outcome}, {StatusCode}) for {FeedUrl}",
+                elapsedMs,
+                outcome,
+                statusCode,
+                feedUrl
+            );
+            return;
+        }
+
+        _logger.LogInformation(
+            "Completed in {ElapsedMs}ms ({Outcome}, {StatusCode}) for {FeedUrl}",
+            elapsedMs,
+            outcome,
+            statusCode,
+            feedUrl
+        );
     }
 
     private void WriteDebugFilesInDevMode(string original, string modified)
