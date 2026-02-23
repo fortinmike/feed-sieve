@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 public class Cache
 {
     private readonly DirectoryInfo _directory;
@@ -12,7 +14,8 @@ public class Cache
 
     public string? Get(string key, string hash)
     {
-        var (subDir, valueFile, hashFile) = GetPaths(key);
+        var valueFile = GetValueFile(key);
+        var hashFile = GetHashFile(key);
 
         if (!File.Exists(valueFile) || !File.Exists(hashFile))
             return null;
@@ -26,7 +29,7 @@ public class Cache
 
     public string? GetLast(string key)
     {
-        var (_, valueFile, _) = GetPaths(key);
+        var valueFile = GetValueFile(key);
 
         if (!File.Exists(valueFile))
             return null;
@@ -36,7 +39,10 @@ public class Cache
 
     public void Set(string key, string hash, string value)
     {
-        var (subDir, valueFile, hashFile) = GetPaths(key);
+        var subDir = GetSubDirectory(key);
+        var valueFile = GetValueFile(key);
+        var hashFile = GetHashFile(key);
+
         if (!subDir.Exists)
             subDir.Create();
 
@@ -44,12 +50,48 @@ public class Cache
         File.WriteAllText(hashFile, hash);
     }
 
-    private (DirectoryInfo subDir, string valueFile, string hashFile) GetPaths(string name)
+    public DateTimeOffset? GetDoNotUpdateBeforeUtc(string key)
     {
-        var safeName = name.ToSafeFileName();
-        var subDir = new DirectoryInfo(Path.Combine(_directory.FullName, safeName));
-        var valueFile = Path.Combine(subDir.FullName, "value.txt");
-        var hashFile = Path.Combine(subDir.FullName, "hash.txt");
-        return (subDir, valueFile, hashFile);
+        var stateFile = GetStateFile(key);
+
+        if (!File.Exists(stateFile))
+            return null;
+
+        var state = JsonSerializer.Deserialize<CacheState>(File.ReadAllText(stateFile));
+        return state?.DoNotUpdateBeforeUtc;
     }
+
+    public void SetDoNotUpdateBeforeUtc(string key, DateTimeOffset doNotUpdateBeforeUtc)
+    {
+        var subDir = GetSubDirectory(key);
+        var stateFile = GetStateFile(key);
+
+        if (!subDir.Exists)
+            subDir.Create();
+
+        var json = JsonSerializer.Serialize(new CacheState(doNotUpdateBeforeUtc));
+        File.WriteAllText(stateFile, json);
+    }
+
+    public void ClearDoNotUpdateBeforeUtc(string key)
+    {
+        var stateFile = GetStateFile(key);
+
+        if (File.Exists(stateFile))
+            File.Delete(stateFile);
+    }
+
+    private DirectoryInfo GetSubDirectory(string key)
+    {
+        var safeName = key.ToSafeFileName();
+        return new DirectoryInfo(Path.Combine(_directory.FullName, safeName));
+    }
+
+    private string GetValueFile(string key) => Path.Combine(GetSubDirectory(key).FullName, "value.txt");
+
+    private string GetHashFile(string key) => Path.Combine(GetSubDirectory(key).FullName, "hash.txt");
+
+    private string GetStateFile(string key) => Path.Combine(GetSubDirectory(key).FullName, "state.json");
+
+    private sealed record CacheState(DateTimeOffset DoNotUpdateBeforeUtc);
 }

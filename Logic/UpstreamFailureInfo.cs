@@ -25,4 +25,22 @@ public sealed record UpstreamFailureInfo(
             HttpStatusCode: statusCode
         );
     }
+
+    public string? GetResponseHeaderValue(string name)
+    {
+        if (ResponseHeaders == null)
+            return null;
+
+        var prefix = name + ":";
+
+        foreach (var header in ResponseHeaders)
+        {
+            if (!header.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            return header[prefix.Length..].Trim();
+        }
+
+        return null;
+    }
 }

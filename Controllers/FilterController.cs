@@ -1,3 +1,4 @@
+using System.Net;
 using System.Web;
 using System.Xml;
 using System.Xml.Linq;
@@ -9,6 +10,8 @@ using Stopwatch = System.Diagnostics.Stopwatch;
 public class FilterController : ControllerBase
 {
     private const long RequestDurationWarningThresholdMs = 10_000;
+    private static readonly TimeSpan DefaultRateLimitCooldown = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan MaxRateLimitCooldown = TimeSpan.FromHours(24);
     private static int _inFlightRequests;
 
     private readonly IWebHostEnvironment _env;
@@ -70,11 +73,26 @@ public class FilterController : ControllerBase
             var returnCachedFeedOnUpstreamFailure =
                 _configuration.GetValue<bool?>("ReturnCachedFeedOnUpstreamFailure") ?? !_env.IsDevelopment();
 
+            if (_cache.GetDoNotUpdateBeforeUtc(feedUrl) is DateTimeOffset doNotUpdateBeforeUtc && doNotUpdateBeforeUtc > DateTimeOffset.UtcNow)
+            {
+                _logger.LogWarning(
+                    "Skipping upstream fetch for {FeedUrl} until {DoNotUpdateBeforeUtc} because upstream previously returned 429",
+                    feedUrl,
+                    doNotUpdateBeforeUtc
+                );
+
+                if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedResponse)
+                    return Complete(cachedResponse, "rate-limited-skipped-cached", StatusCodes.Status200OK);
+
+                return Complete(StatusCode(StatusCodes.Status503ServiceUnavailable), "rate-limited-skipped", StatusCodes.Status503ServiceUnavailable);
+            }
+
             // Fetch the RSS feed XML and get the XML
             string originalRss;
             try
             {
                 originalRss = await _upstreamFeedClient.GetStringAsync(feedUrl, HttpContext.RequestAborted);
+                _cache.ClearDoNotUpdateBeforeUtc(feedUrl);
             }
             catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
             {
@@ -84,6 +102,27 @@ public class FilterController : ControllerBase
             catch (UpstreamHttpStatusException ex)
             {
                 _failureStore.RecordFailure(ex.FailureInfo, ex);
+
+                if (ex.FailureInfo.HttpStatusCode == HttpStatusCode.TooManyRequests)
+                {
+                    var doNotUpdateBefore = GetDoNotUpdateBeforeUtc(ex.FailureInfo);
+                    _cache.SetDoNotUpdateBeforeUtc(feedUrl, doNotUpdateBefore);
+                    _logger.LogWarning(
+                        "Upstream feed rate-limited {FeedUrl}; skipping updates until {DoNotUpdateBeforeUtc}",
+                        feedUrl,
+                        doNotUpdateBefore
+                    );
+
+                    if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedRateLimitedResponse)
+                        return Complete(cachedRateLimitedResponse, "rate-limited-cache-fallback", StatusCodes.Status200OK);
+
+                    return Complete(
+                        StatusCode(StatusCodes.Status503ServiceUnavailable),
+                        "rate-limited",
+                        StatusCodes.Status503ServiceUnavailable
+                    );
+                }
+
                 _logger.LogWarning(
                     "Upstream feed returned HTTP {StatusCode} for {FeedUrl}",
                     (int?)ex.FailureInfo.HttpStatusCode,
@@ -227,5 +266,31 @@ public class FilterController : ControllerBase
             return Content(cachedRss, "application/rss+xml");
 
         return null;
+    }
+
+    private DateTimeOffset GetDoNotUpdateBeforeUtc(UpstreamFailureInfo failureInfo)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var retryAfter = failureInfo.GetResponseHeaderValue("Retry-After");
+
+        if (retryAfter != null)
+        {
+            if (int.TryParse(retryAfter, out var seconds) && seconds >= 0)
+                return ClampDoNotUpdateBefore(now.AddSeconds(seconds), now);
+
+            if (DateTimeOffset.TryParse(retryAfter, out var retryAfterDate))
+                return ClampDoNotUpdateBefore(retryAfterDate, now);
+        }
+
+        return now.Add(DefaultRateLimitCooldown);
+    }
+
+    private static DateTimeOffset ClampDoNotUpdateBefore(DateTimeOffset value, DateTimeOffset now)
+    {
+        if (value <= now)
+            return now.Add(DefaultRateLimitCooldown);
+
+        var max = now.Add(MaxRateLimitCooldown);
+        return value > max ? max : value;
     }
 }
