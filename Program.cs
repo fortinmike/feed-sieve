@@ -34,6 +34,8 @@ builder.Services.AddLogging();
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole(options => options.FormatterName = MessageOnlyConsoleFormatter.FormatterName);
 builder.Logging.AddConsoleFormatter<MessageOnlyConsoleFormatter, ConsoleFormatterOptions>();
+builder.Logging.AddFilter("Microsoft.Extensions.Http", LogLevel.Warning);
+builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
 
 // Register our own services (for the app's logic)
 builder.Services.AddSingleton(new Cache(new DirectoryInfo("./storage/cache")));
