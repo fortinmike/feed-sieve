@@ -15,11 +15,12 @@ public sealed class MessageOnlyConsoleFormatter : ConsoleFormatter
         TextWriter textWriter
     )
     {
+        var timestamp = DateTimeOffset.Now.ToString(TimestampFormat);
         var message = logEntry.Formatter?.Invoke(logEntry.State, logEntry.Exception);
         if (!string.IsNullOrWhiteSpace(message))
-            textWriter.WriteLine($"{DateTimeOffset.Now:{TimestampFormat}} {message}");
+            textWriter.WriteLine($"{timestamp} {message}");
 
         if (logEntry.Exception is not null)
-            textWriter.WriteLine($"{DateTimeOffset.Now:{TimestampFormat}} {logEntry.Exception}");
+            textWriter.WriteLine($"{timestamp} {logEntry.Exception}");
     }
 }
