@@ -1,0 +1,304 @@
+@page "/admin/rules"
+@model RulesEditorModel
+@{
+  ViewData["Title"] = "Filtering Rules";
+}
+<main class="pico">
+  <div class="subpage-header">
+    <a href="/admin" class="subpage-back-link" aria-label="Back to admin">
+      <span class="subpage-back-icon" aria-hidden="true"></span>
+      <span>Back</span>
+    </a>
+    <h1>Filtering Rules</h1>
+    <button type="submit" form="rulesForm" class="subpage-save-button" aria-label="Save rules" title="Save rules">
+      <span class="subpage-save-icon" aria-hidden="true"></span>
+    </button>
+  </div>
+  <p class="page-description">
+    Rules are applied from top to bottom. Drag rows to reorder, then save.
+  </p>
+  <form method="post" class="rules-form" id="rulesForm">
+    @Html.AntiForgeryToken()
+    <input type="hidden" id="RulesJson" name="RulesJson">
+    <div id="rulesList" class="rules-list">
+      <p id="rulesEmptyState" class="rules-empty" hidden>No rules yet. Add one to start filtering.</p>
+    </div>
+    <div class="rules-add-action">
+      <button type="button" id="addRuleButton" class="rules-add-button" aria-label="Add rule" title="Add rule">
+        <span class="rules-add-icon" aria-hidden="true"></span>
+      </button>
+    </div>
+  </form>
+  <template id="ruleRowTemplate">
+    <article class="rule-row" draggable="true">
+      <div class="rule-row-actions">
+        <button type="button" class="rule-reorder-handle" aria-label="Drag to reorder" title="Drag to reorder">
+          <span class="rule-reorder-icon" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="rule-delete" aria-label="Delete rule" title="Delete rule">
+          <span class="rule-delete-icon" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div class="rule-fields">
+        <label class="rule-field">
+          <span class="rule-field-label">Rule</span>
+          <input type="text" class="rule-input-name" placeholder="Ads and Sponsors">
+        </label>
+        <label class="rule-field">
+          <span class="rule-field-label">Host</span>
+          <input type="text" class="rule-input-host" placeholder="example.com (optional)">
+        </label>
+        <label class="rule-field rule-field-match">
+          <span class="rule-field-label">Match</span>
+          <select class="rule-input-match">
+            <option value="title">Title</option>
+            <option value="content">Content</option>
+            <option value="all">All</option>
+          </select>
+        </label>
+        <label class="rule-field">
+          <span class="rule-field-label">Regex</span>
+          <input type="text" class="rule-input-regex" placeholder="\\bad\\b|sponsor(ed)?">
+        </label>
+      </div>
+    </article>
+  </template>
+  @if (Model.ErrorMessage is not null)
+  {
+    <p class="rules-error">@Model.ErrorMessage</p>
+  }
+  @if (Model.SuccessMessage is not null)
+  {
+    <p class="rules-success">@Model.SuccessMessage</p>
+  }
+</main>
+<script id="initialRulesData" type="application/json">@Html.Raw(Model.InitialRulesJson)</script>
+<script>
+  (() => {
+    const rulesForm = document.getElementById("rulesForm");
+    const addRuleButton = document.getElementById("addRuleButton");
+    const rulesList = document.getElementById("rulesList");
+    const rulesEmptyState = document.getElementById("rulesEmptyState");
+    const rulesJsonInput = document.getElementById("RulesJson");
+    const initialRulesData = document.getElementById("initialRulesData");
+    const ruleRowTemplate = document.getElementById("ruleRowTemplate");
+
+    if (!(rulesForm instanceof HTMLFormElement))
+      return;
+    if (!(addRuleButton instanceof HTMLButtonElement))
+      return;
+    if (!(rulesList instanceof HTMLElement))
+      return;
+    if (!(rulesEmptyState instanceof HTMLElement))
+      return;
+    if (!(rulesJsonInput instanceof HTMLInputElement))
+      return;
+    if (!(initialRulesData instanceof HTMLScriptElement))
+      return;
+    if (!(ruleRowTemplate instanceof HTMLTemplateElement))
+      return;
+
+    const parseInitialRules = () => {
+      try {
+        const parsed = JSON.parse(initialRulesData.textContent ?? "[]");
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const normalizeRule = rule => {
+      return {
+        name: typeof rule?.name === "string" ? rule.name : "",
+        host: typeof rule?.host === "string" ? rule.host : "",
+        match: typeof rule?.match === "string" ? rule.match : "title",
+        regex: typeof rule?.regex === "string" ? rule.regex : ""
+      };
+    };
+
+    const updateEmptyState = () => {
+      const hasRows = rulesList.querySelector(".rule-row") !== null;
+      rulesList.classList.toggle("is-empty", !hasRows);
+      rulesEmptyState.hidden = hasRows;
+    };
+
+    const createRuleRow = initialRule => {
+      const rule = normalizeRule(initialRule);
+      const templateRoot = ruleRowTemplate.content.firstElementChild;
+      if (!(templateRoot instanceof HTMLElement))
+        return null;
+
+      const row = templateRoot.cloneNode(true);
+      if (!(row instanceof HTMLElement))
+        return null;
+
+      let canDrag = false;
+
+      const nameInput = row.querySelector(".rule-input-name");
+      const hostInput = row.querySelector(".rule-input-host");
+      const matchInput = row.querySelector(".rule-input-match");
+      const regexInput = row.querySelector(".rule-input-regex");
+      const reorderHandle = row.querySelector(".rule-reorder-handle");
+      const deleteButton = row.querySelector(".rule-delete");
+
+      if (!(nameInput instanceof HTMLInputElement))
+        return row;
+      if (!(hostInput instanceof HTMLInputElement))
+        return row;
+      if (!(matchInput instanceof HTMLSelectElement))
+        return row;
+      if (!(regexInput instanceof HTMLInputElement))
+        return row;
+      if (!(reorderHandle instanceof HTMLButtonElement))
+        return row;
+      if (!(deleteButton instanceof HTMLButtonElement))
+        return row;
+
+      nameInput.value = rule.name;
+      hostInput.value = rule.host;
+      matchInput.value = rule.match === "content" || rule.match === "all" ? rule.match : "title";
+      regexInput.value = rule.regex;
+
+      reorderHandle.addEventListener("pointerdown", () => {
+        canDrag = true;
+      });
+
+      deleteButton.addEventListener("click", () => {
+        const ruleName = nameInput.value.trim();
+        const label = ruleName === "" ? "this rule" : `"${ruleName}"`;
+        if (!window.confirm(`Delete ${label}?`))
+          return;
+
+        row.remove();
+        updateEmptyState();
+      });
+
+      row.addEventListener("dragstart", event => {
+        if (!canDrag) {
+          event.preventDefault();
+          return;
+        }
+
+        row.classList.add("is-dragging");
+        if (event.dataTransfer) {
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", "");
+        }
+      });
+
+      row.addEventListener("pointerup", () => {
+        canDrag = false;
+      });
+
+      row.addEventListener("pointercancel", () => {
+        canDrag = false;
+      });
+
+      row.addEventListener("dragend", () => {
+        canDrag = false;
+        row.classList.remove("is-dragging");
+      });
+
+      return row;
+    };
+
+    const getDragAfterElement = y => {
+      const rows = [...rulesList.querySelectorAll(".rule-row:not(.is-dragging)")];
+      return rows.reduce((closest, child) => {
+        if (!(child instanceof HTMLElement))
+          return closest;
+
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset >= 0 || offset <= closest.offset)
+          return closest;
+
+        return { offset, element: child };
+      }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+    };
+
+    const appendRuleRow = (rule, focusNameInput) => {
+      const row = createRuleRow(rule);
+      if (!(row instanceof HTMLElement))
+        return;
+
+      rulesList.append(row);
+      if (!focusNameInput)
+        return;
+
+      const nameInput = row.querySelector(".rule-input-name");
+      if (nameInput instanceof HTMLInputElement)
+        nameInput.focus();
+    };
+
+    addRuleButton.addEventListener("click", () => {
+      appendRuleRow({ match: "title" }, true);
+    });
+
+    rulesList.addEventListener("dragover", event => {
+      event.preventDefault();
+      const dragging = rulesList.querySelector(".rule-row.is-dragging");
+      if (!(dragging instanceof HTMLElement))
+        return;
+
+      const afterElement = getDragAfterElement(event.clientY);
+      if (!(afterElement instanceof HTMLElement)) {
+        rulesList.append(dragging);
+        return;
+      }
+
+      rulesList.insertBefore(dragging, afterElement);
+    });
+
+    rulesForm.addEventListener("submit", event => {
+      const rows = [...rulesList.querySelectorAll(".rule-row")];
+      const rules = [];
+
+      for (const rowElement of rows) {
+        if (!(rowElement instanceof HTMLElement))
+          continue;
+
+        const nameInput = rowElement.querySelector(".rule-input-name");
+        const hostInput = rowElement.querySelector(".rule-input-host");
+        const matchInput = rowElement.querySelector(".rule-input-match");
+        const regexInput = rowElement.querySelector(".rule-input-regex");
+
+        if (!(nameInput instanceof HTMLInputElement))
+          continue;
+        if (!(hostInput instanceof HTMLInputElement))
+          continue;
+        if (!(matchInput instanceof HTMLSelectElement))
+          continue;
+        if (!(regexInput instanceof HTMLInputElement))
+          continue;
+
+        const rule = {
+          name: nameInput.value.trim(),
+          host: hostInput.value.trim(),
+          match: matchInput.value.trim(),
+          regex: regexInput.value.trim()
+        };
+
+        const hasNoValues = rule.name === "" && rule.host === "" && rule.regex === "";
+        if (hasNoValues)
+          continue;
+
+        if (rule.name === "" || rule.regex === "") {
+          event.preventDefault();
+          window.alert("Each rule requires a name and regex");
+          return;
+        }
+
+        rules.push(rule);
+      }
+
+      rulesJsonInput.value = JSON.stringify(rules);
+    });
+
+    const initialRules = parseInitialRules();
+    if (initialRules.length === 0)
+      updateEmptyState();
+    else
+      initialRules.forEach(rule => appendRuleRow(rule, false));
+  })();
+</script>
