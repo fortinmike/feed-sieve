@@ -216,7 +216,7 @@
   text-decoration-color: currentColor;
 }
 
-.rule-regex-editor {
+.rule-overlay-editor {
   position: relative;
   min-width: 0;
   overflow: hidden;
@@ -224,7 +224,7 @@
   background: var(--pico-form-element-background-color);
 }
 
-.rule-regex-editor .rule-regex-overlay {
+.rule-overlay-editor .rule-overlay {
   position: absolute;
   top: 0;
   right: var(--rule-regex-padding-right);
@@ -236,7 +236,6 @@
   padding: calc(var(--rule-regex-padding-y) + 2px) 0 var(--rule-regex-padding-y) calc(var(--rule-regex-padding-x) + 1px);
   pointer-events: none;
   z-index: 1;
-  opacity: 1;
   color: var(--pico-form-element-color);
   white-space: pre;
   font-family: var(--app-font-mono);
@@ -248,7 +247,7 @@
   font-variant-ligatures: none;
 }
 
-.rule-regex-editor .rule-input-regex {
+.rule-overlay-editor .rule-overlay-input {
   position: relative;
   z-index: 2;
   box-sizing: border-box;
@@ -270,18 +269,18 @@
   caret-color: var(--pico-color);
 }
 
-.rule-regex-editor .rule-input-regex:focus {
+.rule-overlay-editor .rule-overlay-input:focus {
   border-color: var(--pico-form-element-focus-color);
   box-shadow: none;
   outline: none;
 }
 
-.rule-regex-editor .rule-input-regex::placeholder {
+.rule-overlay-editor .rule-overlay-input::placeholder {
   -webkit-text-fill-color: var(--pico-form-element-placeholder-color);
   color: var(--pico-form-element-placeholder-color);
 }
 
-.rule-regex-editor:focus-within {
+.rule-overlay-editor:focus-within {
   background: color-mix(in srgb, var(--pico-primary-focus) 22%, transparent);
 }
 
@@ -319,36 +318,6 @@
   mask: url("/images/circle-ellipsis.svg") center / contain no-repeat;
 }
 
-.rule-regex-test-editor {
-  position: relative;
-  min-width: 0;
-  overflow: hidden;
-  border-radius: var(--pico-border-radius);
-  background: var(--pico-form-element-background-color);
-}
-
-.rule-regex-test-editor .rule-regex-test-overlay {
-  position: absolute;
-  top: 0;
-  right: var(--rule-regex-padding-right);
-  bottom: 0;
-  left: 0;
-  box-sizing: border-box;
-  overflow: hidden;
-  padding: calc(var(--rule-regex-padding-y) + 2px) 0 var(--rule-regex-padding-y) calc(var(--rule-regex-padding-x) + 1px);
-  pointer-events: none;
-  z-index: 1;
-  color: var(--pico-form-element-color);
-  white-space: pre;
-  font-family: var(--app-font-mono);
-  font-size: var(--rule-regex-font-size);
-  line-height: var(--rule-regex-line-height);
-  letter-spacing: normal;
-  font-kerning: none;
-  font-feature-settings: "liga" 0;
-  font-variant-ligatures: none;
-}
-
 .rule-regex-test-editor .rule-regex-test-overlay ::deep mark {
   padding: 0;
   border-radius: 0.18rem;
@@ -356,43 +325,6 @@
   color: #0f2f1d;
   font: inherit;
   line-height: inherit;
-}
-
-.rule-regex-test-editor .rule-input-regex-test {
-  position: relative;
-  z-index: 2;
-  box-sizing: border-box;
-  width: 100%;
-  height: var(--rule-regex-height);
-  padding: var(--rule-regex-padding-y) var(--rule-regex-padding-right) var(--rule-regex-padding-y)
-    var(--rule-regex-padding-x);
-  margin: 0;
-  background: transparent;
-  font-family: var(--app-font-mono);
-  font-size: var(--rule-regex-font-size);
-  line-height: var(--rule-regex-line-height);
-  letter-spacing: normal;
-  font-kerning: none;
-  font-feature-settings: "liga" 0;
-  font-variant-ligatures: none;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  caret-color: var(--pico-color);
-}
-
-.rule-regex-test-editor .rule-input-regex-test:focus {
-  border-color: var(--pico-form-element-focus-color);
-  box-shadow: none;
-  outline: none;
-}
-
-.rule-regex-test-editor .rule-input-regex-test::placeholder {
-  -webkit-text-fill-color: var(--pico-form-element-placeholder-color);
-  color: var(--pico-form-element-placeholder-color);
-}
-
-.rule-regex-test-editor:focus-within {
-  background: color-mix(in srgb, var(--pico-primary-focus) 22%, transparent);
 }
 
 .rule-regex-test-editor.is-match .rule-input-regex-test {
