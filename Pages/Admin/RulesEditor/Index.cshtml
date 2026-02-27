@@ -56,7 +56,24 @@
         </label>
         <label class="rule-field">
           <span class="rule-field-label">Regex</span>
-          <input type="text" class="rule-input-regex" placeholder="\\bad\\b|sponsor(ed)?">
+          <div class="rule-regex-stack">
+            <div class="rule-regex-editor">
+              <div class="rule-regex-overlay" aria-hidden="true"></div>
+              <input
+                type="text"
+                class="rule-input-regex"
+                placeholder="\\bad\\b|sponsor(ed)?"
+                spellcheck="false"
+                autocapitalize="off"
+                autocomplete="off"
+                autocorrect="off"
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
+                data-ms-editor="false">
+            </div>
+            <p class="rule-regex-validation" aria-live="polite"></p>
+          </div>
         </label>
       </div>
     </article>
@@ -71,6 +88,7 @@
   }
 </main>
 <script id="initialRulesData" type="application/json">@Html.Raw(Model.InitialRulesJson)</script>
+<script src="/vendor/regex-colorizer/regex-colorizer.min.js"></script>
 <script>
   (() => {
     const rulesForm = document.getElementById("rulesForm");
@@ -101,6 +119,43 @@
       return;
     if (!(ruleRowTemplate instanceof HTMLTemplateElement))
       return;
+
+    const hasRegexColorizer = typeof window.RegexColorizer?.colorizePattern === "function";
+    const regexErrorProbe = document.createElement("div");
+
+    const escapeHtml = value => {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("'", "&#39;");
+    };
+
+    const getRegexAnalysis = pattern => {
+      if (pattern === "")
+        return { html: "", error: null };
+
+      if (hasRegexColorizer) {
+        const html = window.RegexColorizer.colorizePattern(pattern);
+        regexErrorProbe.innerHTML = html;
+        const errorNode = regexErrorProbe.querySelector(".err");
+        if (errorNode instanceof HTMLElement)
+          return { html, error: errorNode.getAttribute("title") || "Regex has an invalid token" };
+
+        return { html, error: null };
+      }
+
+      try {
+        new RegExp(pattern);
+        return { html: escapeHtml(pattern), error: null };
+      } catch (error) {
+        return {
+          html: escapeHtml(pattern),
+          error: error instanceof Error ? error.message : "Regex is invalid"
+        };
+      }
+    };
 
     const parseInitialRules = () => {
       try {
@@ -192,6 +247,8 @@
       const hostInput = row.querySelector(".rule-input-host");
       const matchInput = row.querySelector(".rule-input-match");
       const regexInput = row.querySelector(".rule-input-regex");
+      const regexOverlay = row.querySelector(".rule-regex-overlay");
+      const regexValidation = row.querySelector(".rule-regex-validation");
       const reorderHandle = row.querySelector(".rule-reorder-handle");
       const deleteButton = row.querySelector(".rule-delete");
 
@@ -203,6 +260,10 @@
         return row;
       if (!(regexInput instanceof HTMLInputElement))
         return row;
+      if (!(regexOverlay instanceof HTMLElement))
+        return row;
+      if (!(regexValidation instanceof HTMLElement))
+        return row;
       if (!(reorderHandle instanceof HTMLButtonElement))
         return row;
       if (!(deleteButton instanceof HTMLButtonElement))
@@ -212,6 +273,36 @@
       hostInput.value = rule.host;
       matchInput.value = rule.match === "content" || rule.match === "all" ? rule.match : "title";
       regexInput.value = rule.regex;
+
+      const syncRegexOverlayScroll = () => {
+        regexOverlay.style.transform = `translateX(${-regexInput.scrollLeft}px)`;
+      };
+
+      const updateRegexUi = () => {
+        const pattern = regexInput.value;
+        if (pattern === "") {
+          regexOverlay.innerHTML = "";
+          regexValidation.textContent = "";
+          regexInput.classList.remove("is-invalid");
+          syncRegexOverlayScroll();
+          return;
+        }
+
+        const analysis = getRegexAnalysis(pattern);
+        regexOverlay.innerHTML = analysis.html;
+        regexValidation.textContent = analysis.error ?? "";
+        regexInput.classList.toggle("is-invalid", analysis.error !== null);
+        syncRegexOverlayScroll();
+      };
+
+      regexInput.addEventListener("input", updateRegexUi);
+      regexInput.addEventListener("scroll", syncRegexOverlayScroll);
+      requestAnimationFrame(() => {
+        if (!row.isConnected)
+          return;
+
+        updateRegexUi();
+      });
 
       reorderHandle.addEventListener("pointerdown", () => {
         canDrag = true;
@@ -322,10 +413,18 @@
     rulesForm.addEventListener("submit", event => {
       const rules = getDraftRules();
 
-      for (const rule of rules) {
+      for (let index = 0; index < rules.length; index++) {
+        const rule = rules[index];
         if (rule.name === "" || rule.regex === "") {
           event.preventDefault();
           window.alert("Each rule requires a name and regex");
+          return;
+        }
+
+        const regexError = getRegexAnalysis(rule.regex).error;
+        if (regexError !== null) {
+          event.preventDefault();
+          window.alert(`Rule ${index + 1} has an invalid regex: ${regexError}`);
           return;
         }
       }

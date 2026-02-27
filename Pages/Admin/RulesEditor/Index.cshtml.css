@@ -148,6 +148,96 @@
   padding-bottom: 0.28rem;
 }
 
+.rule-regex-stack {
+  display: grid;
+  gap: 0.22rem;
+  min-width: 0;
+}
+
+.rule-regex-editor {
+  --rule-regex-height: 1.95rem;
+  --rule-regex-padding-y: 0.28rem;
+  --rule-regex-padding-x: 1rem;
+  --rule-regex-font-size: 0.86rem;
+  --rule-regex-line-height: 1.35;
+  position: relative;
+  min-width: 0;
+  border-radius: var(--pico-border-radius);
+  background: var(--pico-form-element-background-color);
+}
+
+.rule-regex-overlay {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--rule-regex-height);
+  overflow: hidden;
+  padding:
+    calc(var(--rule-regex-padding-y) + 2px)
+    var(--rule-regex-padding-x)
+    var(--rule-regex-padding-y)
+    calc(var(--rule-regex-padding-x) + 1px);
+  pointer-events: none;
+  z-index: 1;
+  opacity: 1;
+  color: var(--pico-color);
+  white-space: pre;
+  font-family: var(--app-font-mono);
+  font-size: var(--rule-regex-font-size);
+  line-height: var(--rule-regex-line-height);
+  letter-spacing: normal;
+  font-kerning: none;
+  font-feature-settings: "liga" 0;
+  font-variant-ligatures: none;
+  transform: translateX(0);
+}
+
+.rule-regex-editor .rule-input-regex {
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--rule-regex-height);
+  padding: var(--rule-regex-padding-y) var(--rule-regex-padding-x);
+  margin: 0;
+  background: transparent;
+  font-family: var(--app-font-mono);
+  font-size: var(--rule-regex-font-size);
+  line-height: var(--rule-regex-line-height);
+  letter-spacing: normal;
+  font-kerning: none;
+  font-feature-settings: "liga" 0;
+  font-variant-ligatures: none;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  caret-color: var(--pico-color);
+}
+
+.rule-regex-editor .rule-input-regex::placeholder {
+  -webkit-text-fill-color: var(--pico-muted-color);
+  color: var(--pico-muted-color);
+}
+
+.rule-regex-editor:focus-within .rule-regex-overlay {
+  background: color-mix(in srgb, var(--pico-primary-focus) 22%, transparent);
+}
+
+.rule-regex-validation {
+  margin: 0;
+  color: var(--pico-del-color);
+  font-size: 0.72rem;
+  line-height: 1.1;
+}
+
+.rule-regex-validation:empty {
+  display: none;
+}
+
+.rule-regex-editor .rule-input-regex.is-invalid {
+  border-color: var(--pico-del-color);
+}
+
 .pico .rule-delete {
   align-self: end;
   display: inline-flex;
