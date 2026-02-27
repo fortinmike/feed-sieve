@@ -1,3 +1,5 @@
+/* Layout */
+
 .rules-form {
   margin-top: 1rem;
 }
@@ -6,43 +8,6 @@
   display: grid;
   gap: 0.65rem;
   margin: 1rem 0;
-}
-
-.pico .subpage-back-link,
-.pico .subpage-save-button {
-  width: 4.5rem;
-}
-
-.pico .subpage-save-button {
-  grid-column: 3;
-  justify-self: end;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0.4rem 0.65rem;
-  border: var(--pico-border-width) solid var(--pico-primary-border);
-  border-radius: var(--pico-border-radius);
-  background: var(--pico-primary-background);
-  color: var(--pico-primary-inverse);
-  font-size: 0.875rem;
-  line-height: 1;
-  box-shadow: none;
-}
-
-.pico .subpage-save-button:hover,
-.pico .subpage-save-button:focus-visible {
-  background: color-mix(in srgb, var(--pico-primary-background) 88%, black);
-  color: var(--pico-primary-inverse);
-}
-
-.subpage-save-icon {
-  display: block;
-  width: 1rem;
-  height: 1rem;
-  background-color: currentColor;
-  -webkit-mask: url("/images/save.svg") center / contain no-repeat;
-  mask: url("/images/save.svg") center / contain no-repeat;
 }
 
 .rules-list.is-empty {
@@ -80,39 +45,6 @@
   align-items: center;
   gap: 0.25rem;
   width: 1.5rem;
-}
-
-.pico .rule-reorder-handle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--pico-muted-color);
-  cursor: grab;
-  box-shadow: none;
-}
-
-.pico .rule-reorder-handle:active {
-  cursor: grabbing;
-}
-
-.pico .rule-reorder-handle:hover,
-.pico .rule-reorder-handle:focus-visible {
-  color: var(--pico-color);
-}
-
-.rule-reorder-icon {
-  display: block;
-  width: 0.95rem;
-  height: 0.95rem;
-  background-color: currentColor;
-  -webkit-mask: url("/images/grip-vertical.svg") center / contain no-repeat;
-  mask: url("/images/grip-vertical.svg") center / contain no-repeat;
 }
 
 .rule-fields {
@@ -154,7 +86,7 @@
   --rule-regex-padding-x: 1rem;
   --rule-regex-toggle-right: 0.5rem;
   --rule-regex-toggle-hit-size: 1.5rem;
-  --rule-regex-right-inset: 1rem;
+  --rule-regex-right-inset: 0.7rem;
   --rule-regex-padding-right: calc(var(--rule-regex-padding-x) + var(--rule-regex-right-inset));
   --rule-regex-font-size: 0.86rem;
   --rule-regex-line-height: 1.35;
@@ -163,58 +95,152 @@
   min-width: 0;
 }
 
-.rule-regex-overlay ::deep b,
-.rule-regex-overlay ::deep i,
-.rule-regex-overlay ::deep span,
-.rule-regex-overlay ::deep u {
-  font: inherit;
-  letter-spacing: inherit;
-  line-height: inherit;
+/* Header actions */
+
+.pico .subpage-back-link,
+.pico .subpage-save-button {
+  width: 4.5rem;
+}
+
+.pico .subpage-save-button {
+  grid-column: 3;
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0.4rem 0.65rem;
+  border: var(--pico-border-width) solid var(--pico-primary-border);
+  border-radius: var(--pico-border-radius);
+  background: var(--pico-primary-background);
+  color: var(--pico-primary-inverse);
+  font-size: 0.875rem;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.pico .subpage-save-button:hover,
+.pico .subpage-save-button:focus-visible {
+  background: color-mix(in srgb, var(--pico-primary-background) 88%, black);
+  color: var(--pico-primary-inverse);
+}
+
+.subpage-save-icon {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  background-color: currentColor;
+  -webkit-mask: url("/images/save.svg") center / contain no-repeat;
+  mask: url("/images/save.svg") center / contain no-repeat;
+}
+
+/* Row action buttons */
+
+.pico .rule-reorder-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
   background: transparent;
-  text-decoration: none;
+  color: var(--pico-muted-color);
+  cursor: grab;
+  box-shadow: none;
 }
 
-.rule-regex-overlay ::deep b {
-  color: #49a0ff;
-  font-weight: 600;
+.pico .rule-reorder-handle:active {
+  cursor: grabbing;
 }
 
-.rule-regex-overlay ::deep b.rule-alt {
-  color: #ff7aa8;
+.pico .rule-reorder-handle:hover,
+.pico .rule-reorder-handle:focus-visible {
+  color: var(--pico-color);
 }
 
-.rule-regex-overlay ::deep b.rule-anchor {
-  color: #f5dd72;
+.rule-reorder-icon {
+  display: block;
+  width: 0.95rem;
+  height: 0.95rem;
+  background-color: currentColor;
+  -webkit-mask: url("/images/grip-vertical.svg") center / contain no-repeat;
+  mask: url("/images/grip-vertical.svg") center / contain no-repeat;
 }
 
-.rule-regex-overlay ::deep b.bref {
-  color: #7cd2ff;
-}
-
-.rule-regex-overlay ::deep b.g1,
-.rule-regex-overlay ::deep b.g2,
-.rule-regex-overlay ::deep b.g3,
-.rule-regex-overlay ::deep b.g4,
-.rule-regex-overlay ::deep b.g5 {
-  color: #7ddc9b;
-}
-
-.rule-regex-overlay ::deep span,
-.rule-regex-overlay ::deep u {
-  color: #ffbf69;
-}
-
-.rule-regex-overlay ::deep i {
-  color: #f2c879;
-  font-style: normal;
-}
-
-.rule-regex-overlay ::deep .err {
+.pico .rule-delete {
+  align-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   color: var(--pico-del-color);
-  text-decoration: underline wavy;
-  text-decoration-thickness: 2px;
-  text-decoration-color: currentColor;
+  background: transparent;
+  box-shadow: none;
 }
+
+.pico .rule-delete:hover,
+.pico .rule-delete:focus-visible {
+  color: color-mix(in srgb, var(--pico-del-color) 82%, white);
+}
+
+.rule-delete-icon {
+  display: block;
+  width: 0.95rem;
+  height: 0.95rem;
+  background-color: currentColor;
+  -webkit-mask: url("/images/trash-2.svg") center / contain no-repeat;
+  mask: url("/images/trash-2.svg") center / contain no-repeat;
+}
+
+/* Add row action */
+
+.rules-add-action {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.2rem;
+}
+
+.rules-add-action button {
+  margin: 0;
+}
+
+.pico .rules-add-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: var(--pico-border-width) solid var(--pico-muted-border-color);
+  border-radius: var(--pico-border-radius);
+  background: var(--pico-form-element-background-color);
+  color: var(--pico-muted-color);
+  box-shadow: none;
+}
+
+.pico .rules-add-button:hover,
+.pico .rules-add-button:focus-visible {
+  background: var(--pico-form-element-selected-background-color);
+  color: var(--pico-color);
+}
+
+.rules-add-icon {
+  display: block;
+  width: 1.1rem;
+  height: 1.1rem;
+  background-color: currentColor;
+  -webkit-mask: url("/images/plus.svg") center / contain no-repeat;
+  mask: url("/images/plus.svg") center / contain no-repeat;
+}
+
+/* Shared overlay input pattern */
 
 .rule-overlay-editor {
   position: relative;
@@ -284,6 +310,67 @@
   background: color-mix(in srgb, var(--pico-primary-focus) 22%, transparent);
 }
 
+/* Regex colorizer token theme */
+
+.rule-regex-overlay ::deep b,
+.rule-regex-overlay ::deep i,
+.rule-regex-overlay ::deep span,
+.rule-regex-overlay ::deep u {
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  background: transparent;
+  text-decoration: none;
+}
+
+.rule-regex-overlay ::deep b {
+  color: #49a0ff;
+  font-weight: 600;
+}
+
+.rule-regex-overlay ::deep b.rule-alt {
+  color: #ff7aa8;
+}
+
+.rule-regex-overlay ::deep b.rule-anchor {
+  color: #f5dd72;
+}
+
+.rule-regex-overlay ::deep b.bref {
+  color: #7cd2ff;
+}
+
+.rule-regex-overlay ::deep b.g1,
+.rule-regex-overlay ::deep b.g2,
+.rule-regex-overlay ::deep b.g3,
+.rule-regex-overlay ::deep b.g4,
+.rule-regex-overlay ::deep b.g5 {
+  color: #7ddc9b;
+}
+
+.rule-regex-overlay ::deep span,
+.rule-regex-overlay ::deep u {
+  color: #ffbf69;
+}
+
+.rule-regex-overlay ::deep i {
+  color: #f2c879;
+  font-style: normal;
+}
+
+.rule-regex-overlay ::deep .err {
+  color: var(--pico-del-color);
+  text-decoration: underline wavy;
+  text-decoration-thickness: 2px;
+  text-decoration-color: currentColor;
+}
+
+.rule-regex-editor .rule-input-regex.is-invalid {
+  border-color: var(--pico-del-color);
+}
+
+/* Regex test toggle + match state */
+
 .pico .rule-regex-test-toggle {
   position: absolute;
   top: 50%;
@@ -327,24 +414,24 @@
   line-height: inherit;
 }
 
-.rule-regex-test-editor.is-match .rule-input-regex-test {
-  border-color: color-mix(in srgb, var(--pico-ins-color) 65%, var(--pico-form-element-border-color));
-}
-
 .rule-regex-test-editor.is-match {
   background-color: color-mix(in srgb, var(--pico-ins-color) 15%, var(--pico-form-element-background-color));
 }
 
-.rule-regex-test-editor.is-match:focus-within .rule-input-regex-test {
-  border-color: color-mix(in srgb, var(--pico-ins-color) 82%, var(--pico-form-element-border-color));
+.rule-regex-test-editor.is-match .rule-input-regex-test {
+  border-color: color-mix(in srgb, var(--pico-ins-color) 65%, var(--pico-form-element-border-color));
 }
 
 .rule-regex-test-editor.is-match:focus-within {
   background-color: color-mix(in srgb, var(--pico-ins-color) 26%, var(--pico-form-element-background-color));
 }
 
-.rule-regex-test-editor.is-match:focus-within .rule-input-regex-test,
-.rule-regex-test-editor.is-match .rule-input-regex-test {
+.rule-regex-test-editor.is-match:focus-within .rule-input-regex-test {
+  border-color: color-mix(in srgb, var(--pico-ins-color) 82%, var(--pico-form-element-border-color));
+}
+
+.rule-regex-test-editor.is-match .rule-input-regex-test,
+.rule-regex-test-editor.is-match:focus-within .rule-input-regex-test {
   box-shadow: none;
   outline: none;
 }
@@ -360,78 +447,7 @@
   display: none;
 }
 
-.rule-regex-editor .rule-input-regex.is-invalid {
-  border-color: var(--pico-del-color);
-}
-
-.pico .rule-delete {
-  align-self: end;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  color: var(--pico-del-color);
-  background: transparent;
-  box-shadow: none;
-}
-
-.pico .rule-delete:hover,
-.pico .rule-delete:focus-visible {
-  color: color-mix(in srgb, var(--pico-del-color) 82%, white);
-}
-
-.rule-delete-icon {
-  display: block;
-  width: 0.95rem;
-  height: 0.95rem;
-  background-color: currentColor;
-  -webkit-mask: url("/images/trash-2.svg") center / contain no-repeat;
-  mask: url("/images/trash-2.svg") center / contain no-repeat;
-}
-
-.rules-add-action {
-  display: flex;
-  justify-content: center;
-  margin-top: 0.2rem;
-}
-
-.rules-add-action button {
-  margin: 0;
-}
-
-.pico .rules-add-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.1rem;
-  height: 2.1rem;
-  padding: 0;
-  border: var(--pico-border-width) solid var(--pico-muted-border-color);
-  border-radius: var(--pico-border-radius);
-  background: var(--pico-form-element-background-color);
-  color: var(--pico-muted-color);
-  box-shadow: none;
-}
-
-.pico .rules-add-button:hover,
-.pico .rules-add-button:focus-visible {
-  background: var(--pico-form-element-selected-background-color);
-  color: var(--pico-color);
-}
-
-.rules-add-icon {
-  display: block;
-  width: 1.1rem;
-  height: 1.1rem;
-  background-color: currentColor;
-  -webkit-mask: url("/images/plus.svg") center / contain no-repeat;
-  mask: url("/images/plus.svg") center / contain no-repeat;
-}
+/* Feedback */
 
 .rules-error {
   margin-top: 0.65rem;
