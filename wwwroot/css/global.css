@@ -96,3 +96,8 @@ h1 {
   font-size: 0.875rem;
   color: var(--pico-muted-color);
 }
+
+.pico input[type="text"]:focus:not(.rule-input-regex),
+.pico select:focus {
+  background-color: color-mix(in srgb, var(--pico-primary-focus) 22%, var(--pico-form-element-background-color));
+}
