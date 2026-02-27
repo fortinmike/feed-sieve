@@ -81,11 +81,21 @@
                 <span class="rule-regex-test-toggle-icon" aria-hidden="true"></span>
               </button>
             </div>
-            <input
-              type="text"
-              class="rule-input-regex-test"
-              placeholder="Test sample text"
-              hidden>
+            <div class="rule-regex-test-editor" hidden>
+              <div class="rule-regex-test-overlay" aria-hidden="true"></div>
+              <input
+                type="text"
+                class="rule-input-regex-test"
+                placeholder="Test sample text"
+                spellcheck="false"
+                autocapitalize="off"
+                autocomplete="off"
+                autocorrect="off"
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
+                data-ms-editor="false">
+            </div>
             <p class="rule-regex-validation" aria-live="polite"></p>
           </div>
         </label>
@@ -148,6 +158,16 @@
       return { html, error: null };
     };
 
+    const tagRegexOverlayTokens = regexOverlay => {
+      // RegexColorizer outputs the markup but doesn't provide dedicated classes for these token types,
+      // so we tag them here to apply our custom theme colors in CSS
+      regexOverlay.querySelectorAll("b").forEach(tokenNode => {
+        const token = tokenNode.textContent ?? "";
+        tokenNode.classList.toggle("rule-alt", token === "|");
+        tokenNode.classList.toggle("rule-anchor", token === "^" || token === "$");
+      });
+    };
+
     const parseInitialRules = () => {
       try {
         const parsed = JSON.parse(initialRulesData.textContent ?? "[]");
@@ -180,7 +200,9 @@
       const matchInput = rowElement.querySelector(".rule-input-match");
       const regexInput = rowElement.querySelector(".rule-input-regex");
       const regexTestToggle = rowElement.querySelector(".rule-regex-test-toggle");
+      const regexTestEditor = rowElement.querySelector(".rule-regex-test-editor");
       const regexTestInput = rowElement.querySelector(".rule-input-regex-test");
+      const regexTestOverlay = rowElement.querySelector(".rule-regex-test-overlay");
       const regexOverlay = rowElement.querySelector(".rule-regex-overlay");
       const regexValidation = rowElement.querySelector(".rule-regex-validation");
       const reorderHandle = rowElement.querySelector(".rule-reorder-handle");
@@ -196,7 +218,11 @@
         return null;
       if (!(regexTestToggle instanceof HTMLButtonElement))
         return null;
+      if (!(regexTestEditor instanceof HTMLElement))
+        return null;
       if (!(regexTestInput instanceof HTMLInputElement))
+        return null;
+      if (!(regexTestOverlay instanceof HTMLElement))
         return null;
       if (!(regexOverlay instanceof HTMLElement))
         return null;
@@ -214,7 +240,9 @@
         matchInput,
         regexInput,
         regexTestToggle,
+        regexTestEditor,
         regexTestInput,
+        regexTestOverlay,
         regexOverlay,
         regexValidation,
         reorderHandle,
@@ -248,7 +276,7 @@
       rowElements.regexInput.value = rule.regex;
       rowElements.regexTestInput.value = rule.sample;
       const hasSample = rule.sample !== "";
-      rowElements.regexTestInput.hidden = !hasSample;
+      rowElements.regexTestEditor.hidden = !hasSample;
       rowElements.regexTestToggle.setAttribute("aria-expanded", String(hasSample));
       rowElements.regexTestToggle.classList.toggle("is-active", hasSample);
     };
@@ -313,28 +341,78 @@
         rowElements.regexOverlay.scrollLeft = rowElements.regexInput.scrollLeft;
       };
 
+      const syncRegexTestOverlayScroll = () => {
+        rowElements.regexTestOverlay.scrollLeft = rowElements.regexTestInput.scrollLeft;
+      };
+
+      const escapeHtml = value => {
+        return value
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll("\"", "&quot;");
+      };
+
+      const getRegexTestOverlayHtml = (sample, pattern, isInvalidPattern) => {
+        if (sample === "")
+          return { html: "", isMatch: false };
+        if (pattern === "" || isInvalidPattern)
+          return { html: escapeHtml(sample), isMatch: false };
+
+        let regex;
+        try {
+          regex = new RegExp(pattern, "g");
+        } catch {
+          return { html: escapeHtml(sample), isMatch: false };
+        }
+
+        const parts = [];
+        let lastIndex = 0;
+        let isMatch = false;
+        let match = regex.exec(sample);
+        while (match !== null) {
+          const matchValue = match[0];
+          const startIndex = match.index;
+          const endIndex = startIndex + matchValue.length;
+
+          if (endIndex > startIndex) {
+            if (startIndex > lastIndex)
+              parts.push(escapeHtml(sample.slice(lastIndex, startIndex)));
+
+            parts.push(`<mark>${escapeHtml(matchValue)}</mark>`);
+            lastIndex = endIndex;
+            isMatch = true;
+          }
+
+          if (matchValue.length === 0) {
+            if (regex.lastIndex >= sample.length)
+              break;
+
+            regex.lastIndex += 1;
+          }
+
+          match = regex.exec(sample);
+        }
+
+        if (lastIndex < sample.length)
+          parts.push(escapeHtml(sample.slice(lastIndex)));
+
+        return { html: parts.join(""), isMatch };
+      };
+
       const updateRegexTestState = () => {
         const pattern = rowElements.regexInput.value;
         const sample = rowElements.regexTestInput.value;
         const isInvalidPattern = rowElements.regexInput.classList.contains("is-invalid");
-        if (pattern === "" || sample === "" || isInvalidPattern) {
-          rowElements.regexTestInput.classList.remove("is-match");
-          return;
-        }
-
-        let isMatch = false;
-        try {
-          isMatch = new RegExp(pattern).test(sample);
-        } catch {
-          isMatch = false;
-        }
-
-        rowElements.regexTestInput.classList.toggle("is-match", isMatch);
+        const overlayState = getRegexTestOverlayHtml(sample, pattern, isInvalidPattern);
+        rowElements.regexTestOverlay.innerHTML = overlayState.html;
+        rowElements.regexTestEditor.classList.toggle("is-match", overlayState.isMatch);
+        syncRegexTestOverlayScroll();
       };
 
       const toggleRegexTester = () => {
-        const shouldShow = rowElements.regexTestInput.hidden;
-        rowElements.regexTestInput.hidden = !shouldShow;
+        const shouldShow = rowElements.regexTestEditor.hidden;
+        rowElements.regexTestEditor.hidden = !shouldShow;
         rowElements.regexTestToggle.setAttribute("aria-expanded", String(shouldShow));
         rowElements.regexTestToggle.classList.toggle("is-active", shouldShow);
 
@@ -355,6 +433,7 @@
 
         const analysis = getRegexAnalysis(pattern);
         rowElements.regexOverlay.innerHTML = analysis.html;
+        tagRegexOverlayTokens(rowElements.regexOverlay);
         rowElements.regexValidation.textContent = analysis.error ?? "";
         rowElements.regexInput.classList.toggle("is-invalid", analysis.error !== null);
         updateRegexTestState();
@@ -368,6 +447,7 @@
       });
       rowElements.regexTestToggle.addEventListener("click", toggleRegexTester);
       rowElements.regexTestInput.addEventListener("input", updateRegexTestState);
+      rowElements.regexTestInput.addEventListener("scroll", syncRegexTestOverlayScroll);
       requestAnimationFrame(() => {
         if (!row.isConnected)
           return;
