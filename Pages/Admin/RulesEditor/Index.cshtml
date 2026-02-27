@@ -453,7 +453,22 @@
   updateRegexTestState();
   };
 
-  rowElements.regexInput.addEventListener("input", updateRegexUi);
+  const normalizeRegexInput = () => {
+  const normalized = rowElements.regexInput.value.toLowerCase();
+  if (normalized === rowElements.regexInput.value)
+  return;
+
+  const selectionStart = rowElements.regexInput.selectionStart;
+  const selectionEnd = rowElements.regexInput.selectionEnd;
+  rowElements.regexInput.value = normalized;
+  if (selectionStart !== null && selectionEnd !== null)
+  rowElements.regexInput.setSelectionRange(selectionStart, selectionEnd);
+  };
+
+  rowElements.regexInput.addEventListener("input", () => {
+  normalizeRegexInput();
+  updateRegexUi();
+  });
   rowElements.regexTestToggle.addEventListener("pointerdown", event => {
   event.preventDefault();
   });
