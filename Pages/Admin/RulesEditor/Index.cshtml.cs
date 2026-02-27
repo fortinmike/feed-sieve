@@ -108,6 +108,7 @@ public class RulesEditorModel : PageModel
             var host = submittedRule.Host.Trim();
             var match = submittedRule.Match.Trim().ToLowerInvariant();
             var regex = submittedRule.Regex.Trim();
+            var sample = submittedRule.Sample.Trim();
 
             var hasNoValues =
                 string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(host) && string.IsNullOrWhiteSpace(regex);
@@ -129,7 +130,8 @@ public class RulesEditorModel : PageModel
                     Name = name,
                     Host = string.IsNullOrWhiteSpace(host) ? null : host,
                     Match = match,
-                    Regex = regex
+                    Regex = regex,
+                    Sample = string.IsNullOrWhiteSpace(sample) ? null : sample
                 }
             );
         }
@@ -149,7 +151,8 @@ public class RulesEditorModel : PageModel
             Name = rule.Name,
             Host = rule.Host ?? "",
             Match = rule.Match,
-            Regex = rule.Regex
+            Regex = rule.Regex,
+            Sample = rule.Sample ?? ""
         };
     }
 
@@ -172,5 +175,7 @@ public class RulesEditorModel : PageModel
         public string Match { get; set; } = "title";
 
         public string Regex { get; set; } = "";
+
+        public string Sample { get; set; } = "";
     }
 }

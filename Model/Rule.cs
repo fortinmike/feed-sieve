@@ -10,4 +10,7 @@ public class Rule
     public required string Match { get; set; }
 
     public required string Regex { get; set; }
+
+    [YamlMember(Alias = "sample")]
+    public string? Sample { get; set; }
 }

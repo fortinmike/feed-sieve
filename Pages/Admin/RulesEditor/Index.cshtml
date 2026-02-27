@@ -104,9 +104,15 @@
       margin: 0;
     }
 
-    .rule-input-regex-test.is-match {
+    .pico input[type="text"].rule-input-regex-test.is-match {
       border-color: color-mix(in srgb, var(--pico-ins-color) 65%, var(--pico-form-element-border-color));
-      background: color-mix(in srgb, var(--pico-ins-color) 15%, var(--pico-form-element-background-color));
+      background-color: color-mix(in srgb, var(--pico-ins-color) 15%, var(--pico-form-element-background-color));
+    }
+
+    .pico input[type="text"].rule-input-regex-test.is-match:focus {
+      border-color: color-mix(in srgb, var(--pico-ins-color) 82%, var(--pico-form-element-border-color));
+      background-color: color-mix(in srgb, var(--pico-ins-color) 26%, var(--pico-form-element-background-color));
+      box-shadow: 0 0 0 var(--pico-outline-width) color-mix(in srgb, var(--pico-ins-color) 35%, transparent);
     }
   </style>
 }
@@ -270,7 +276,8 @@
         name: typeof rule?.name === "string" ? rule.name : "",
         host: typeof rule?.host === "string" ? rule.host : "",
         match: typeof rule?.match === "string" ? rule.match : "title",
-        regex: typeof rule?.regex === "string" ? rule.regex : ""
+        regex: typeof rule?.regex === "string" ? rule.regex : "",
+        sample: typeof rule?.sample === "string" ? rule.sample : ""
       };
     };
 
@@ -330,6 +337,7 @@
     };
 
     const readDraftRule = rowElements => {
+      const sample = rowElements.regexTestInput.value.trim();
       const rule = {
         name: rowElements.nameInput.value.trim(),
         host: rowElements.hostInput.value.trim(),
@@ -341,6 +349,9 @@
       if (hasNoValues)
         return null;
 
+      if (sample !== "")
+        return { ...rule, sample };
+
       return rule;
     };
 
@@ -349,6 +360,11 @@
       rowElements.hostInput.value = rule.host;
       rowElements.matchInput.value = normalizeMatch(rule.match);
       rowElements.regexInput.value = rule.regex;
+      rowElements.regexTestInput.value = rule.sample;
+      const hasSample = rule.sample !== "";
+      rowElements.regexTestInput.hidden = !hasSample;
+      rowElements.regexTestToggle.setAttribute("aria-expanded", String(hasSample));
+      rowElements.regexTestToggle.classList.toggle("is-active", hasSample);
     };
 
     const updateEmptyState = () => {
