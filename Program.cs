@@ -36,9 +36,14 @@ builder.Logging.AddConsole(options => options.FormatterName = MessageOnlyConsole
 builder.Logging.AddConsoleFormatter<MessageOnlyConsoleFormatter, ConsoleFormatterOptions>();
 builder.Logging.AddFilter("Microsoft.Extensions.Http", LogLevel.Warning);
 builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
+var isCacheEnabled = builder.Configuration.GetValue<bool?>("Cache") ?? true;
 
 // Register our own services (for the app's logic)
-builder.Services.AddSingleton(new Cache(new DirectoryInfo("./storage/cache")));
+builder.Services.AddSingleton<ICache>(
+    isCacheEnabled
+        ? new Cache(new DirectoryInfo("./storage/cache"))
+        : new NullCache()
+);
 builder.Services.AddSingleton(new FailureStore(new DirectoryInfo("./storage/failures")));
 builder.Services.AddSingleton<UpstreamFeedClient>();
 builder.Services.AddScoped<Processor>();
@@ -71,5 +76,6 @@ logger.LogInformation($"Application started!");
 logger.LogInformation($"Default rules contain {Rules.Load("rules.default.yaml").Count} entries.");
 logger.LogInformation("Secret-Based Authentication: Enabled");
 logger.LogInformation("Admin Authentication: {State}", isAdminAuthEnabled ? "Enabled" : "Disabled");
+logger.LogInformation("Cache: {State}", isCacheEnabled ? "Enabled" : "Disabled");
 
 app.Run();

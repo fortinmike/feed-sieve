@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-public class Cache
+public class Cache : ICache
 {
     private readonly DirectoryInfo _directory;
 

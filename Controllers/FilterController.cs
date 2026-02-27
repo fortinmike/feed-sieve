@@ -19,7 +19,7 @@ public class FilterController : ControllerBase
     private readonly ILogger<FilterController> _logger;
     private readonly UpstreamFeedClient _upstreamFeedClient;
     private readonly Processor _processor;
-    private readonly Cache _cache;
+    private readonly ICache _cache;
     private readonly FailureStore _failureStore;
 
     public FilterController(
@@ -28,7 +28,7 @@ public class FilterController : ControllerBase
         ILogger<FilterController> logger,
         UpstreamFeedClient upstreamFeedClient,
         Processor processor,
-        Cache cache,
+        ICache cache,
         FailureStore failureStore
     )
     {
