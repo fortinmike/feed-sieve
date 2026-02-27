@@ -168,6 +168,79 @@
       });
     };
 
+    const createOverlayField = ({ input, overlay, render, afterRender }) => {
+      const syncScroll = () => {
+        overlay.scrollLeft = input.scrollLeft;
+      };
+
+      const update = () => {
+        const state = render(input.value);
+        overlay.innerHTML = state.html;
+        if (afterRender)
+          afterRender({ overlay, state });
+        syncScroll();
+        return state;
+      };
+
+      input.addEventListener("scroll", syncScroll);
+      return { update, syncScroll };
+    };
+
+    const escapeHtml = value => {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;");
+    };
+
+    const getRegexTestOverlayState = (sample, pattern, isInvalidPattern) => {
+      if (sample === "")
+        return { html: "", isMatch: false };
+      if (pattern === "" || isInvalidPattern)
+        return { html: escapeHtml(sample), isMatch: false };
+
+      let regex;
+      try {
+        regex = new RegExp(pattern, "g");
+      } catch {
+        return { html: escapeHtml(sample), isMatch: false };
+      }
+
+      const parts = [];
+      let lastIndex = 0;
+      let isMatch = false;
+      let match = regex.exec(sample);
+      while (match !== null) {
+        const matchValue = match[0];
+        const startIndex = match.index;
+        const endIndex = startIndex + matchValue.length;
+
+        if (endIndex > startIndex) {
+          if (startIndex > lastIndex)
+            parts.push(escapeHtml(sample.slice(lastIndex, startIndex)));
+
+          parts.push(`<mark>${escapeHtml(matchValue)}</mark>`);
+          lastIndex = endIndex;
+          isMatch = true;
+        }
+
+        if (matchValue.length === 0) {
+          if (regex.lastIndex >= sample.length)
+            break;
+
+          regex.lastIndex += 1;
+        }
+
+        match = regex.exec(sample);
+      }
+
+      if (lastIndex < sample.length)
+        parts.push(escapeHtml(sample.slice(lastIndex)));
+
+      return { html: parts.join(""), isMatch };
+    };
+
     const parseInitialRules = () => {
       try {
         const parsed = JSON.parse(initialRulesData.textContent ?? "[]");
@@ -337,77 +410,34 @@
 
       writeRule(rowElements, rule);
 
-      const syncRegexOverlayScroll = () => {
-        rowElements.regexOverlay.scrollLeft = rowElements.regexInput.scrollLeft;
-      };
+      const regexOverlayField = createOverlayField({
+        input: rowElements.regexInput,
+        overlay: rowElements.regexOverlay,
+        render: pattern => {
+          if (pattern === "")
+            return { html: "", error: null, invalid: false };
 
-      const syncRegexTestOverlayScroll = () => {
-        rowElements.regexTestOverlay.scrollLeft = rowElements.regexTestInput.scrollLeft;
-      };
-
-      const escapeHtml = value => {
-        return value
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;")
-          .replaceAll("\"", "&quot;");
-      };
-
-      const getRegexTestOverlayHtml = (sample, pattern, isInvalidPattern) => {
-        if (sample === "")
-          return { html: "", isMatch: false };
-        if (pattern === "" || isInvalidPattern)
-          return { html: escapeHtml(sample), isMatch: false };
-
-        let regex;
-        try {
-          regex = new RegExp(pattern, "g");
-        } catch {
-          return { html: escapeHtml(sample), isMatch: false };
+          const analysis = getRegexAnalysis(pattern);
+          return { html: analysis.html, error: analysis.error, invalid: analysis.error !== null };
+        },
+        afterRender: ({ overlay }) => {
+          tagRegexOverlayTokens(overlay);
         }
+      });
 
-        const parts = [];
-        let lastIndex = 0;
-        let isMatch = false;
-        let match = regex.exec(sample);
-        while (match !== null) {
-          const matchValue = match[0];
-          const startIndex = match.index;
-          const endIndex = startIndex + matchValue.length;
-
-          if (endIndex > startIndex) {
-            if (startIndex > lastIndex)
-              parts.push(escapeHtml(sample.slice(lastIndex, startIndex)));
-
-            parts.push(`<mark>${escapeHtml(matchValue)}</mark>`);
-            lastIndex = endIndex;
-            isMatch = true;
-          }
-
-          if (matchValue.length === 0) {
-            if (regex.lastIndex >= sample.length)
-              break;
-
-            regex.lastIndex += 1;
-          }
-
-          match = regex.exec(sample);
+      const regexTestOverlayField = createOverlayField({
+        input: rowElements.regexTestInput,
+        overlay: rowElements.regexTestOverlay,
+        render: sample => {
+          const pattern = rowElements.regexInput.value;
+          const isInvalidPattern = rowElements.regexInput.classList.contains("is-invalid");
+          return getRegexTestOverlayState(sample, pattern, isInvalidPattern);
         }
-
-        if (lastIndex < sample.length)
-          parts.push(escapeHtml(sample.slice(lastIndex)));
-
-        return { html: parts.join(""), isMatch };
-      };
+      });
 
       const updateRegexTestState = () => {
-        const pattern = rowElements.regexInput.value;
-        const sample = rowElements.regexTestInput.value;
-        const isInvalidPattern = rowElements.regexInput.classList.contains("is-invalid");
-        const overlayState = getRegexTestOverlayHtml(sample, pattern, isInvalidPattern);
-        rowElements.regexTestOverlay.innerHTML = overlayState.html;
+        const overlayState = regexTestOverlayField.update();
         rowElements.regexTestEditor.classList.toggle("is-match", overlayState.isMatch);
-        syncRegexTestOverlayScroll();
       };
 
       const toggleRegexTester = () => {
@@ -420,34 +450,18 @@
       };
 
       const updateRegexUi = () => {
-        const pattern = rowElements.regexInput.value;
-        if (pattern === "") {
-          rowElements.regexOverlay.innerHTML = "";
-          rowElements.regexOverlay.scrollLeft = 0;
-          rowElements.regexValidation.textContent = "";
-          rowElements.regexInput.classList.remove("is-invalid");
-          updateRegexTestState();
-          syncRegexOverlayScroll();
-          return;
-        }
-
-        const analysis = getRegexAnalysis(pattern);
-        rowElements.regexOverlay.innerHTML = analysis.html;
-        tagRegexOverlayTokens(rowElements.regexOverlay);
-        rowElements.regexValidation.textContent = analysis.error ?? "";
-        rowElements.regexInput.classList.toggle("is-invalid", analysis.error !== null);
+        const regexState = regexOverlayField.update();
+        rowElements.regexValidation.textContent = regexState.error ?? "";
+        rowElements.regexInput.classList.toggle("is-invalid", regexState.invalid);
         updateRegexTestState();
-        syncRegexOverlayScroll();
       };
 
       rowElements.regexInput.addEventListener("input", updateRegexUi);
-      rowElements.regexInput.addEventListener("scroll", syncRegexOverlayScroll);
       rowElements.regexTestToggle.addEventListener("pointerdown", event => {
         event.preventDefault();
       });
       rowElements.regexTestToggle.addEventListener("click", toggleRegexTester);
       rowElements.regexTestInput.addEventListener("input", updateRegexTestState);
-      rowElements.regexTestInput.addEventListener("scroll", syncRegexTestOverlayScroll);
       requestAnimationFrame(() => {
         if (!row.isConnected)
           return;
