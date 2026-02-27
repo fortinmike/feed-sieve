@@ -3,119 +3,6 @@
 @{
   ViewData["Title"] = "Rules";
 }
-@section Head {
-  <style>
-    .rule-regex-overlay b,
-    .rule-regex-overlay i,
-    .rule-regex-overlay span,
-    .rule-regex-overlay u {
-      font: inherit;
-      letter-spacing: inherit;
-      line-height: inherit;
-      background: transparent;
-      text-decoration: none;
-    }
-
-    .rule-regex-overlay b {
-      color: #49a0ff;
-      font-weight: 600;
-    }
-
-    .rule-regex-overlay b.bref {
-      color: #7cd2ff;
-    }
-
-    .rule-regex-overlay b.g1,
-    .rule-regex-overlay b.g2,
-    .rule-regex-overlay b.g3,
-    .rule-regex-overlay b.g4,
-    .rule-regex-overlay b.g5 {
-      color: #7ddc9b;
-    }
-
-    .rule-regex-overlay span,
-    .rule-regex-overlay u {
-      color: #ffbf69;
-    }
-
-    .rule-regex-overlay i {
-      color: #f2c879;
-      font-style: normal;
-    }
-
-    .rule-regex-overlay .err {
-      color: var(--pico-del-color);
-      text-decoration: underline wavy;
-      text-decoration-thickness: 2px;
-      text-decoration-color: currentColor;
-    }
-
-    .rule-regex-editor {
-      --rule-regex-toggle-size: 1.15rem;
-      --rule-regex-toggle-gap: 0.5rem;
-      --rule-regex-padding-right: calc(
-        var(--rule-regex-padding-x) + var(--rule-regex-toggle-size) + var(--rule-regex-toggle-gap)
-      );
-    }
-
-    .rule-regex-overlay {
-      padding-right: var(--rule-regex-padding-right);
-    }
-
-    .rule-regex-editor .rule-input-regex {
-      padding-right: var(--rule-regex-padding-right);
-    }
-
-    .pico .rule-regex-test-toggle {
-      position: absolute;
-      top: 50%;
-      right: 0.5rem;
-      z-index: 3;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: var(--rule-regex-toggle-size);
-      height: var(--rule-regex-toggle-size);
-      margin: 0;
-      padding: 0;
-      border: 0;
-      background: transparent;
-      color: var(--pico-muted-color);
-      box-shadow: none;
-      transform: translateY(-50%);
-    }
-
-    .pico .rule-regex-test-toggle:hover,
-    .pico .rule-regex-test-toggle:focus-visible,
-    .pico .rule-regex-test-toggle.is-active {
-      color: var(--pico-color);
-    }
-
-    .rule-regex-test-toggle-icon {
-      display: block;
-      width: 0.85rem;
-      height: 0.85rem;
-      background-color: currentColor;
-      -webkit-mask: url("/images/circle-ellipsis.svg") center / contain no-repeat;
-      mask: url("/images/circle-ellipsis.svg") center / contain no-repeat;
-    }
-
-    .rule-input-regex-test {
-      margin: 0;
-    }
-
-    .pico input[type="text"].rule-input-regex-test.is-match {
-      border-color: color-mix(in srgb, var(--pico-ins-color) 65%, var(--pico-form-element-border-color));
-      background-color: color-mix(in srgb, var(--pico-ins-color) 15%, var(--pico-form-element-background-color));
-    }
-
-    .pico input[type="text"].rule-input-regex-test.is-match:focus {
-      border-color: color-mix(in srgb, var(--pico-ins-color) 82%, var(--pico-form-element-border-color));
-      background-color: color-mix(in srgb, var(--pico-ins-color) 26%, var(--pico-form-element-background-color));
-      box-shadow: 0 0 0 var(--pico-outline-width) color-mix(in srgb, var(--pico-ins-color) 35%, transparent);
-    }
-  </style>
-}
 <main class="pico">
   <div class="subpage-header">
     <a href="/admin" class="subpage-back-link" aria-label="Back to admin">
@@ -248,7 +135,6 @@
       return;
 
     const regexErrorProbe = document.createElement("div");
-
     const getRegexAnalysis = pattern => {
       if (pattern === "")
         return { html: "", error: null };
@@ -393,6 +279,19 @@
         `You have ${hostRules.length} rules covering ${distinctHosts.size} hosts plus ${globalRules} global rules (${totalRules} total)`;
     };
 
+    const SUMMARY_DEBOUNCE_MS = 120;
+    let summaryDebounceHandle = 0;
+
+    const scheduleSummaryUpdate = () => {
+      if (summaryDebounceHandle !== 0)
+        window.clearTimeout(summaryDebounceHandle);
+
+      summaryDebounceHandle = window.setTimeout(() => {
+        summaryDebounceHandle = 0;
+        updateSummary();
+      }, SUMMARY_DEBOUNCE_MS);
+    };
+
     const createRuleRow = initialRule => {
       const rule = normalizeRule(initialRule);
       const templateRoot = ruleRowTemplate.content.firstElementChild;
@@ -411,7 +310,7 @@
       writeRule(rowElements, rule);
 
       const syncRegexOverlayScroll = () => {
-        rowElements.regexOverlay.style.transform = `translateX(${-rowElements.regexInput.scrollLeft}px)`;
+        rowElements.regexOverlay.scrollLeft = rowElements.regexInput.scrollLeft;
       };
 
       const updateRegexTestState = () => {
@@ -438,8 +337,6 @@
         rowElements.regexTestInput.hidden = !shouldShow;
         rowElements.regexTestToggle.setAttribute("aria-expanded", String(shouldShow));
         rowElements.regexTestToggle.classList.toggle("is-active", shouldShow);
-        if (shouldShow)
-          rowElements.regexTestInput.focus();
 
         updateRegexTestState();
       };
@@ -448,6 +345,7 @@
         const pattern = rowElements.regexInput.value;
         if (pattern === "") {
           rowElements.regexOverlay.innerHTML = "";
+          rowElements.regexOverlay.scrollLeft = 0;
           rowElements.regexValidation.textContent = "";
           rowElements.regexInput.classList.remove("is-invalid");
           updateRegexTestState();
@@ -465,6 +363,9 @@
 
       rowElements.regexInput.addEventListener("input", updateRegexUi);
       rowElements.regexInput.addEventListener("scroll", syncRegexOverlayScroll);
+      rowElements.regexTestToggle.addEventListener("pointerdown", event => {
+        event.preventDefault();
+      });
       rowElements.regexTestToggle.addEventListener("click", toggleRegexTester);
       rowElements.regexTestInput.addEventListener("input", updateRegexTestState);
       requestAnimationFrame(() => {
@@ -558,11 +459,11 @@
     });
 
     rulesList.addEventListener("input", () => {
-      updateSummary();
+      scheduleSummaryUpdate();
     });
 
     rulesList.addEventListener("change", () => {
-      updateSummary();
+      scheduleSummaryUpdate();
     });
 
     rulesList.addEventListener("dragover", event => {

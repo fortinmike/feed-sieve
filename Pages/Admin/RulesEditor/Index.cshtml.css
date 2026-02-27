@@ -154,30 +154,78 @@
   min-width: 0;
 }
 
+.rule-regex-overlay ::deep b,
+.rule-regex-overlay ::deep i,
+.rule-regex-overlay ::deep span,
+.rule-regex-overlay ::deep u {
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  background: transparent;
+  text-decoration: none;
+}
+
+.rule-regex-overlay ::deep b {
+  color: #49a0ff;
+  font-weight: 600;
+}
+
+.rule-regex-overlay ::deep b.bref {
+  color: #7cd2ff;
+}
+
+.rule-regex-overlay ::deep b.g1,
+.rule-regex-overlay ::deep b.g2,
+.rule-regex-overlay ::deep b.g3,
+.rule-regex-overlay ::deep b.g4,
+.rule-regex-overlay ::deep b.g5 {
+  color: #7ddc9b;
+}
+
+.rule-regex-overlay ::deep span,
+.rule-regex-overlay ::deep u {
+  color: #ffbf69;
+}
+
+.rule-regex-overlay ::deep i {
+  color: #f2c879;
+  font-style: normal;
+}
+
+.rule-regex-overlay ::deep .err {
+  color: var(--pico-del-color);
+  text-decoration: underline wavy;
+  text-decoration-thickness: 2px;
+  text-decoration-color: currentColor;
+}
+
 .rule-regex-editor {
   --rule-regex-height: 1.95rem;
   --rule-regex-padding-y: 0.28rem;
   --rule-regex-padding-x: 1rem;
+  --rule-regex-toggle-right: 0.5rem;
+  --rule-regex-toggle-hit-size: 1.5rem;
+  --rule-regex-right-inset: 1rem;
+  --rule-regex-padding-right: calc(var(--rule-regex-padding-x) + var(--rule-regex-right-inset));
   --rule-regex-font-size: 0.86rem;
   --rule-regex-line-height: 1.35;
   position: relative;
   min-width: 0;
+  overflow: hidden;
   border-radius: var(--pico-border-radius);
   background: var(--pico-form-element-background-color);
 }
 
-.rule-regex-overlay {
+.rule-regex-editor .rule-regex-overlay {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: var(--rule-regex-padding-right);
+  bottom: 0;
+  left: 0;
   box-sizing: border-box;
-  width: 100%;
   height: var(--rule-regex-height);
   overflow: hidden;
-  padding:
-    calc(var(--rule-regex-padding-y) + 2px)
-    var(--rule-regex-padding-x)
-    var(--rule-regex-padding-y)
-    calc(var(--rule-regex-padding-x) + 1px);
+  padding: calc(var(--rule-regex-padding-y) + 2px) 0 var(--rule-regex-padding-y) calc(var(--rule-regex-padding-x) + 1px);
   pointer-events: none;
   z-index: 1;
   opacity: 1;
@@ -190,7 +238,6 @@
   font-kerning: none;
   font-feature-settings: "liga" 0;
   font-variant-ligatures: none;
-  transform: translateX(0);
 }
 
 .rule-regex-editor .rule-input-regex {
@@ -199,7 +246,8 @@
   box-sizing: border-box;
   width: 100%;
   height: var(--rule-regex-height);
-  padding: var(--rule-regex-padding-y) var(--rule-regex-padding-x);
+  padding: var(--rule-regex-padding-y) var(--rule-regex-padding-right) var(--rule-regex-padding-y)
+    var(--rule-regex-padding-x);
   margin: 0;
   background: transparent;
   font-family: var(--app-font-mono);
@@ -214,13 +262,69 @@
   caret-color: var(--pico-color);
 }
 
+.rule-regex-editor .rule-input-regex:focus {
+  border-color: var(--pico-form-element-focus-color);
+  box-shadow: none;
+  outline: none;
+}
+
 .rule-regex-editor .rule-input-regex::placeholder {
   -webkit-text-fill-color: var(--pico-form-element-placeholder-color);
   color: var(--pico-form-element-placeholder-color);
 }
 
-.rule-regex-editor:focus-within .rule-regex-overlay {
+.rule-regex-editor:focus-within {
   background: color-mix(in srgb, var(--pico-primary-focus) 22%, transparent);
+}
+
+.pico .rule-regex-test-toggle {
+  position: absolute;
+  top: 50%;
+  right: var(--rule-regex-toggle-right);
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--rule-regex-toggle-hit-size);
+  height: var(--rule-regex-toggle-hit-size);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pico-muted-color);
+  box-shadow: none;
+  transform: translateY(-50%);
+}
+
+.pico .rule-regex-test-toggle:hover,
+.pico .rule-regex-test-toggle:focus-visible,
+.pico .rule-regex-test-toggle.is-active {
+  color: var(--pico-color);
+}
+
+.rule-regex-test-toggle-icon {
+  display: block;
+  width: 0.85rem;
+  height: 0.85rem;
+  background-color: currentColor;
+  -webkit-mask: url("/images/circle-ellipsis.svg") center / contain no-repeat;
+  mask: url("/images/circle-ellipsis.svg") center / contain no-repeat;
+}
+
+.rule-input-regex-test {
+  margin: 0;
+}
+
+.pico input[type="text"].rule-input-regex-test.is-match {
+  border-color: color-mix(in srgb, var(--pico-ins-color) 65%, var(--pico-form-element-border-color));
+  background-color: color-mix(in srgb, var(--pico-ins-color) 15%, var(--pico-form-element-background-color));
+}
+
+.pico input[type="text"].rule-input-regex-test.is-match:focus {
+  border-color: color-mix(in srgb, var(--pico-ins-color) 82%, var(--pico-form-element-border-color));
+  background-color: color-mix(in srgb, var(--pico-ins-color) 26%, var(--pico-form-element-background-color));
+  box-shadow: none;
+  outline: none;
 }
 
 .rule-regex-validation {

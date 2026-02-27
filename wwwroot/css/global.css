@@ -1,5 +1,6 @@
 :root {
   color-scheme: light dark;
+  --pico-transition: 0s linear;
   --app-text: #1a2230;
   --pico-font-family-sans-serif: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --app-font-mono: monospace;
@@ -100,4 +101,15 @@ h1 {
 .pico input[type="text"]:focus:not(.rule-input-regex),
 .pico select:focus {
   background-color: color-mix(in srgb, var(--pico-primary-focus) 22%, var(--pico-form-element-background-color));
+  border-color: var(--pico-form-element-focus-color);
+  box-shadow: none;
+  outline: none;
+}
+
+.pico input[type="text"]:active:not(:focus):not(.rule-input-regex),
+.pico select:active:not(:focus) {
+  background-color: var(--pico-form-element-background-color);
+  border-color: var(--pico-form-element-border-color);
+  box-shadow: none;
+  outline: none;
 }
