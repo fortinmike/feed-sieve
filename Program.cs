@@ -49,17 +49,19 @@ var app = builder.Build();
 var secret = builder.Configuration["Secret"] ?? "";
 if (string.IsNullOrWhiteSpace(secret))
     throw new InvalidOperationException("Secret must be set in configuration");
+var isAdminAuthEnabled = builder.Configuration.GetValue<bool?>("AdminAuthEnabled") ?? true;
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.UseMiddleware<BasicAuthMiddleware>(
-    new BasicAuthOptions
-    {
-        Username = "admin",
-        Password = secret,
-        ProtectedPathPrefixes = ["/admin"]
-    }
-);
+if (isAdminAuthEnabled)
+    app.UseMiddleware<BasicAuthMiddleware>(
+        new BasicAuthOptions
+        {
+            Username = "admin",
+            Password = secret,
+            ProtectedPathPrefixes = ["/admin"]
+        }
+    );
 
 app.MapControllers();
 app.MapRazorPages();
@@ -68,5 +70,6 @@ var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation($"Application started!");
 logger.LogInformation($"Default rules contain {Rules.Load("rules.default.yaml").Count} entries.");
 logger.LogInformation("Secret-Based Authentication: Enabled");
+logger.LogInformation("Admin Authentication: {State}", isAdminAuthEnabled ? "Enabled" : "Disabled");
 
 app.Run();
