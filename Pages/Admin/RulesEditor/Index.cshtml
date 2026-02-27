@@ -182,12 +182,12 @@
   if (pattern === "" || isInvalidPattern)
   return { html: escapeHtml(sample), isMatch: false };
 
-  let regex;
-  try {
-  regex = new RegExp(pattern, "g");
-  } catch {
-  return { html: escapeHtml(sample), isMatch: false };
-  }
+      let regex;
+      try {
+        regex = new RegExp(pattern, "gi");
+      } catch {
+        return { html: escapeHtml(sample), isMatch: false };
+      }
 
   const parts = [];
   let lastIndex = 0;
@@ -474,15 +474,14 @@
   canDrag = true;
   });
 
-  rowElements.deleteButton.addEventListener("click", () => {
-  const ruleName = rowElements.nameInput.value.trim();
-  const label = ruleName === "" ? "this rule" : `"${ruleName}"`;
-  if (!window.confirm(`Delete ${label}?`))
-  return;
+      rowElements.deleteButton.addEventListener("click", () => {
+        const ruleName = rowElements.nameInput.value.trim() || "Untitled rule";
+        if (!window.confirm(`Delete "${ruleName}"?`))
+          return;
 
-  row.remove();
-  updateEmptyState();
-  updateSummary();
+        row.remove();
+        updateEmptyState();
+        updateSummary();
   });
 
   row.addEventListener("dragstart", event => {
