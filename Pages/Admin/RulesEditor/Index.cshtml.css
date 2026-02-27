@@ -215,8 +215,8 @@
 }
 
 .rule-regex-editor .rule-input-regex::placeholder {
-  -webkit-text-fill-color: var(--pico-muted-color);
-  color: var(--pico-muted-color);
+  -webkit-text-fill-color: var(--pico-form-element-placeholder-color);
+  color: var(--pico-form-element-placeholder-color);
 }
 
 .rule-regex-editor:focus-within .rule-regex-overlay {

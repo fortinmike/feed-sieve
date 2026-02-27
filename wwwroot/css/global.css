@@ -39,6 +39,10 @@ h1 {
   margin-bottom: 2rem;
 }
 
+.pico {
+  --pico-form-element-placeholder-color: color-mix(in srgb, var(--pico-muted-color) 35%, transparent);
+}
+
 .subpage-header {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
