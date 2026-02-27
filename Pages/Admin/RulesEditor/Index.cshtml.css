@@ -317,19 +317,8 @@
   color: var(--pico-ins-color);
 }
 
-@media (max-width: 900px) {
-  .rule-field {
-    grid-template-columns: 3rem 1fr;
-  }
-}
-
 @media (max-width: 640px) {
-  .rule-field {
-    grid-template-columns: 3rem 1fr;
-  }
-
   .rule-field-label {
     font-size: 0.7rem;
   }
-
 }

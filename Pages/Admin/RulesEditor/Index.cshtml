@@ -120,41 +120,19 @@
     if (!(ruleRowTemplate instanceof HTMLTemplateElement))
       return;
 
-    const hasRegexColorizer = typeof window.RegexColorizer?.colorizePattern === "function";
     const regexErrorProbe = document.createElement("div");
-
-    const escapeHtml = value => {
-      return value
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll("\"", "&quot;")
-        .replaceAll("'", "&#39;");
-    };
 
     const getRegexAnalysis = pattern => {
       if (pattern === "")
         return { html: "", error: null };
 
-      if (hasRegexColorizer) {
-        const html = window.RegexColorizer.colorizePattern(pattern);
-        regexErrorProbe.innerHTML = html;
-        const errorNode = regexErrorProbe.querySelector(".err");
-        if (errorNode instanceof HTMLElement)
-          return { html, error: errorNode.getAttribute("title") || "Regex has an invalid token" };
+      const html = window.RegexColorizer.colorizePattern(pattern);
+      regexErrorProbe.innerHTML = html;
+      const errorNode = regexErrorProbe.querySelector(".err");
+      if (errorNode instanceof HTMLElement)
+        return { html, error: errorNode.getAttribute("title") || "Regex has an invalid token" };
 
-        return { html, error: null };
-      }
-
-      try {
-        new RegExp(pattern);
-        return { html: escapeHtml(pattern), error: null };
-      } catch (error) {
-        return {
-          html: escapeHtml(pattern),
-          error: error instanceof Error ? error.message : "Regex is invalid"
-        };
-      }
+      return { html, error: null };
     };
 
     const parseInitialRules = () => {
@@ -175,6 +153,75 @@
       };
     };
 
+    const normalizeMatch = match => {
+      return match === "content" || match === "all" ? match : "title";
+    };
+
+    const getRuleRowElements = rowElement => {
+      if (!(rowElement instanceof HTMLElement))
+        return null;
+
+      const nameInput = rowElement.querySelector(".rule-input-name");
+      const hostInput = rowElement.querySelector(".rule-input-host");
+      const matchInput = rowElement.querySelector(".rule-input-match");
+      const regexInput = rowElement.querySelector(".rule-input-regex");
+      const regexOverlay = rowElement.querySelector(".rule-regex-overlay");
+      const regexValidation = rowElement.querySelector(".rule-regex-validation");
+      const reorderHandle = rowElement.querySelector(".rule-reorder-handle");
+      const deleteButton = rowElement.querySelector(".rule-delete");
+
+      if (!(nameInput instanceof HTMLInputElement))
+        return null;
+      if (!(hostInput instanceof HTMLInputElement))
+        return null;
+      if (!(matchInput instanceof HTMLSelectElement))
+        return null;
+      if (!(regexInput instanceof HTMLInputElement))
+        return null;
+      if (!(regexOverlay instanceof HTMLElement))
+        return null;
+      if (!(regexValidation instanceof HTMLElement))
+        return null;
+      if (!(reorderHandle instanceof HTMLButtonElement))
+        return null;
+      if (!(deleteButton instanceof HTMLButtonElement))
+        return null;
+
+      return {
+        row: rowElement,
+        nameInput,
+        hostInput,
+        matchInput,
+        regexInput,
+        regexOverlay,
+        regexValidation,
+        reorderHandle,
+        deleteButton
+      };
+    };
+
+    const readDraftRule = rowElements => {
+      const rule = {
+        name: rowElements.nameInput.value.trim(),
+        host: rowElements.hostInput.value.trim(),
+        match: rowElements.matchInput.value.trim(),
+        regex: rowElements.regexInput.value.trim()
+      };
+
+      const hasNoValues = rule.name === "" && rule.host === "" && rule.regex === "";
+      if (hasNoValues)
+        return null;
+
+      return rule;
+    };
+
+    const writeRule = (rowElements, rule) => {
+      rowElements.nameInput.value = rule.name;
+      rowElements.hostInput.value = rule.host;
+      rowElements.matchInput.value = normalizeMatch(rule.match);
+      rowElements.regexInput.value = rule.regex;
+    };
+
     const updateEmptyState = () => {
       const hasRows = rulesList.querySelector(".rule-row") !== null;
       rulesList.classList.toggle("is-empty", !hasRows);
@@ -183,41 +230,11 @@
 
     const getDraftRules = () => {
       const rows = [...rulesList.querySelectorAll(".rule-row")];
-      const rules = [];
-
-      rows.forEach(rowElement => {
-        if (!(rowElement instanceof HTMLElement))
-          return;
-
-        const nameInput = rowElement.querySelector(".rule-input-name");
-        const hostInput = rowElement.querySelector(".rule-input-host");
-        const matchInput = rowElement.querySelector(".rule-input-match");
-        const regexInput = rowElement.querySelector(".rule-input-regex");
-
-        if (!(nameInput instanceof HTMLInputElement))
-          return;
-        if (!(hostInput instanceof HTMLInputElement))
-          return;
-        if (!(matchInput instanceof HTMLSelectElement))
-          return;
-        if (!(regexInput instanceof HTMLInputElement))
-          return;
-
-        const rule = {
-          name: nameInput.value.trim(),
-          host: hostInput.value.trim(),
-          match: matchInput.value.trim(),
-          regex: regexInput.value.trim()
-        };
-
-        const hasNoValues = rule.name === "" && rule.host === "" && rule.regex === "";
-        if (hasNoValues)
-          return;
-
-        rules.push(rule);
-      });
-
-      return rules;
+      return rows
+        .map(getRuleRowElements)
+        .filter(rowElements => rowElements !== null)
+        .map(readDraftRule)
+        .filter(rule => rule !== null);
     };
 
     const updateSummary = () => {
@@ -242,61 +259,35 @@
         return null;
 
       let canDrag = false;
-
-      const nameInput = row.querySelector(".rule-input-name");
-      const hostInput = row.querySelector(".rule-input-host");
-      const matchInput = row.querySelector(".rule-input-match");
-      const regexInput = row.querySelector(".rule-input-regex");
-      const regexOverlay = row.querySelector(".rule-regex-overlay");
-      const regexValidation = row.querySelector(".rule-regex-validation");
-      const reorderHandle = row.querySelector(".rule-reorder-handle");
-      const deleteButton = row.querySelector(".rule-delete");
-
-      if (!(nameInput instanceof HTMLInputElement))
-        return row;
-      if (!(hostInput instanceof HTMLInputElement))
-        return row;
-      if (!(matchInput instanceof HTMLSelectElement))
-        return row;
-      if (!(regexInput instanceof HTMLInputElement))
-        return row;
-      if (!(regexOverlay instanceof HTMLElement))
-        return row;
-      if (!(regexValidation instanceof HTMLElement))
-        return row;
-      if (!(reorderHandle instanceof HTMLButtonElement))
-        return row;
-      if (!(deleteButton instanceof HTMLButtonElement))
+      const rowElements = getRuleRowElements(row);
+      if (rowElements === null)
         return row;
 
-      nameInput.value = rule.name;
-      hostInput.value = rule.host;
-      matchInput.value = rule.match === "content" || rule.match === "all" ? rule.match : "title";
-      regexInput.value = rule.regex;
+      writeRule(rowElements, rule);
 
       const syncRegexOverlayScroll = () => {
-        regexOverlay.style.transform = `translateX(${-regexInput.scrollLeft}px)`;
+        rowElements.regexOverlay.style.transform = `translateX(${-rowElements.regexInput.scrollLeft}px)`;
       };
 
       const updateRegexUi = () => {
-        const pattern = regexInput.value;
+        const pattern = rowElements.regexInput.value;
         if (pattern === "") {
-          regexOverlay.innerHTML = "";
-          regexValidation.textContent = "";
-          regexInput.classList.remove("is-invalid");
+          rowElements.regexOverlay.innerHTML = "";
+          rowElements.regexValidation.textContent = "";
+          rowElements.regexInput.classList.remove("is-invalid");
           syncRegexOverlayScroll();
           return;
         }
 
         const analysis = getRegexAnalysis(pattern);
-        regexOverlay.innerHTML = analysis.html;
-        regexValidation.textContent = analysis.error ?? "";
-        regexInput.classList.toggle("is-invalid", analysis.error !== null);
+        rowElements.regexOverlay.innerHTML = analysis.html;
+        rowElements.regexValidation.textContent = analysis.error ?? "";
+        rowElements.regexInput.classList.toggle("is-invalid", analysis.error !== null);
         syncRegexOverlayScroll();
       };
 
-      regexInput.addEventListener("input", updateRegexUi);
-      regexInput.addEventListener("scroll", syncRegexOverlayScroll);
+      rowElements.regexInput.addEventListener("input", updateRegexUi);
+      rowElements.regexInput.addEventListener("scroll", syncRegexOverlayScroll);
       requestAnimationFrame(() => {
         if (!row.isConnected)
           return;
@@ -304,12 +295,12 @@
         updateRegexUi();
       });
 
-      reorderHandle.addEventListener("pointerdown", () => {
+      rowElements.reorderHandle.addEventListener("pointerdown", () => {
         canDrag = true;
       });
 
-      deleteButton.addEventListener("click", () => {
-        const ruleName = nameInput.value.trim();
+      rowElements.deleteButton.addEventListener("click", () => {
+        const ruleName = rowElements.nameInput.value.trim();
         const label = ruleName === "" ? "this rule" : `"${ruleName}"`;
         if (!window.confirm(`Delete ${label}?`))
           return;
@@ -372,9 +363,9 @@
       if (!focusNameInput)
         return;
 
-      const nameInput = row.querySelector(".rule-input-name");
-      if (nameInput instanceof HTMLInputElement)
-        nameInput.focus();
+      const rowElements = getRuleRowElements(row);
+      if (rowElements !== null)
+        rowElements.nameInput.focus();
     };
 
     addRuleButton.addEventListener("click", () => {

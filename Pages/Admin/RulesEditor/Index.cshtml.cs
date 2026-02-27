@@ -28,8 +28,7 @@ public class RulesEditorModel : PageModel
 
     public void OnGet()
     {
-        var rules = LoadRules();
-        InitialRulesJson = SerializeEditorRules(rules.Select(MapToEditorRule).ToList());
+        RefreshInitialRulesFromDisk();
     }
 
     public IActionResult OnPost()
@@ -41,19 +40,11 @@ public class RulesEditorModel : PageModel
         }
         catch (JsonException)
         {
-            ErrorMessage = "Rules payload is invalid";
-            var existingRules = LoadRules();
-            InitialRulesJson = SerializeEditorRules(existingRules.Select(MapToEditorRule).ToList());
-            return Page();
+            return InvalidPayload();
         }
 
         if (submittedRules is null)
-        {
-            ErrorMessage = "Rules payload is invalid";
-            var existingRules = LoadRules();
-            InitialRulesJson = SerializeEditorRules(existingRules.Select(MapToEditorRule).ToList());
-            return Page();
-        }
+            return InvalidPayload();
 
         var validationError = TryBuildRules(submittedRules, out var rulesToSave);
         if (validationError is not null)
@@ -76,8 +67,20 @@ public class RulesEditorModel : PageModel
         }
 
         SuccessMessage = $"Saved {rulesToSave.Count} rule(s)";
-        InitialRulesJson = SerializeEditorRules(rulesToSave.Select(MapToEditorRule).ToList());
+        InitialRulesJson = SerializeRulesForEditor(rulesToSave);
         return Page();
+    }
+
+    private IActionResult InvalidPayload()
+    {
+        ErrorMessage = "Rules payload is invalid";
+        RefreshInitialRulesFromDisk();
+        return Page();
+    }
+
+    private void RefreshInitialRulesFromDisk()
+    {
+        InitialRulesJson = SerializeRulesForEditor(LoadRules());
     }
 
     private List<Rule> LoadRules()
@@ -148,6 +151,11 @@ public class RulesEditorModel : PageModel
             Match = rule.Match,
             Regex = rule.Regex
         };
+    }
+
+    private static string SerializeRulesForEditor(List<Rule> rules)
+    {
+        return SerializeEditorRules(rules.Select(MapToEditorRule).ToList());
     }
 
     private static string SerializeEditorRules(List<EditorRule> rules)
