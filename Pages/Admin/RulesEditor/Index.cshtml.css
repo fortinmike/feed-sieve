@@ -371,7 +371,8 @@
 
 /* Regex test toggle + match state */
 
-.pico .rule-regex-test-toggle {
+.pico .rule-regex-test-toggle,
+.pico .rule-regex101-link {
   position: absolute;
   top: 50%;
   right: var(--rule-regex-toggle-right);
@@ -392,7 +393,9 @@
 
 .pico .rule-regex-test-toggle:hover,
 .pico .rule-regex-test-toggle:focus-visible,
-.pico .rule-regex-test-toggle.is-active {
+.pico .rule-regex-test-toggle.is-active,
+.pico .rule-regex101-link:hover,
+.pico .rule-regex101-link:focus-visible {
   color: var(--pico-color);
 }
 
@@ -403,6 +406,15 @@
   background-color: currentColor;
   -webkit-mask: url("/images/circle-ellipsis.svg") center / contain no-repeat;
   mask: url("/images/circle-ellipsis.svg") center / contain no-repeat;
+}
+
+.rule-regex101-link-icon {
+  display: block;
+  width: 0.8rem;
+  height: 0.8rem;
+  background-color: currentColor;
+  -webkit-mask: url("/images/external-link.svg") center / contain no-repeat;
+  mask: url("/images/external-link.svg") center / contain no-repeat;
 }
 
 .rule-regex-test-editor .rule-regex-test-overlay ::deep mark {
