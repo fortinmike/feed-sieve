@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 public class RulesEditorModel : PageModel
 {
     private static readonly HashSet<string> AllowedMatchKinds = ["title", "content", "all"];
-    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static readonly JsonSerializerOptions JsonOptions =
+        new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<RulesEditorModel> _logger;
@@ -119,13 +120,15 @@ public class RulesEditorModel : PageModel
             if (!AllowedMatchKinds.Contains(match))
                 return $"Rule {index + 1} has an invalid match target";
 
-            builtRules.Add(new Rule
-            {
-                Name = name,
-                Host = string.IsNullOrWhiteSpace(host) ? null : host,
-                Match = match,
-                Regex = regex
-            });
+            builtRules.Add(
+                new Rule
+                {
+                    Name = name,
+                    Host = string.IsNullOrWhiteSpace(host) ? null : host,
+                    Match = match,
+                    Regex = regex
+                }
+            );
         }
 
         return null;

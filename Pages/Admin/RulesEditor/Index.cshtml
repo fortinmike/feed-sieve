@@ -10,13 +10,11 @@
       <span>Back</span>
     </a>
     <h1>Filtering Rules</h1>
-    <button type="submit" form="rulesForm" class="subpage-save-button" aria-label="Save rules" title="Save rules">
+    <button type="button" id="saveRulesButton" class="subpage-save-button" aria-label="Save rules" title="Save rules">
       <span class="subpage-save-icon" aria-hidden="true"></span>
     </button>
   </div>
-  <p class="page-description">
-    Rules are applied from top to bottom. Drag rows to reorder, then save.
-  </p>
+  <p id="rulesSummary" class="page-description"></p>
   <form method="post" class="rules-form" id="rulesForm">
     @Html.AntiForgeryToken()
     <input type="hidden" id="RulesJson" name="RulesJson">
@@ -77,8 +75,10 @@
   (() => {
     const rulesForm = document.getElementById("rulesForm");
     const addRuleButton = document.getElementById("addRuleButton");
+    const saveRulesButton = document.getElementById("saveRulesButton");
     const rulesList = document.getElementById("rulesList");
     const rulesEmptyState = document.getElementById("rulesEmptyState");
+    const rulesSummary = document.getElementById("rulesSummary");
     const rulesJsonInput = document.getElementById("RulesJson");
     const initialRulesData = document.getElementById("initialRulesData");
     const ruleRowTemplate = document.getElementById("ruleRowTemplate");
@@ -87,9 +87,13 @@
       return;
     if (!(addRuleButton instanceof HTMLButtonElement))
       return;
+    if (!(saveRulesButton instanceof HTMLButtonElement))
+      return;
     if (!(rulesList instanceof HTMLElement))
       return;
     if (!(rulesEmptyState instanceof HTMLElement))
+      return;
+    if (!(rulesSummary instanceof HTMLElement))
       return;
     if (!(rulesJsonInput instanceof HTMLInputElement))
       return;
@@ -120,6 +124,56 @@
       const hasRows = rulesList.querySelector(".rule-row") !== null;
       rulesList.classList.toggle("is-empty", !hasRows);
       rulesEmptyState.hidden = hasRows;
+    };
+
+    const getDraftRules = () => {
+      const rows = [...rulesList.querySelectorAll(".rule-row")];
+      const rules = [];
+
+      rows.forEach(rowElement => {
+        if (!(rowElement instanceof HTMLElement))
+          return;
+
+        const nameInput = rowElement.querySelector(".rule-input-name");
+        const hostInput = rowElement.querySelector(".rule-input-host");
+        const matchInput = rowElement.querySelector(".rule-input-match");
+        const regexInput = rowElement.querySelector(".rule-input-regex");
+
+        if (!(nameInput instanceof HTMLInputElement))
+          return;
+        if (!(hostInput instanceof HTMLInputElement))
+          return;
+        if (!(matchInput instanceof HTMLSelectElement))
+          return;
+        if (!(regexInput instanceof HTMLInputElement))
+          return;
+
+        const rule = {
+          name: nameInput.value.trim(),
+          host: hostInput.value.trim(),
+          match: matchInput.value.trim(),
+          regex: regexInput.value.trim()
+        };
+
+        const hasNoValues = rule.name === "" && rule.host === "" && rule.regex === "";
+        if (hasNoValues)
+          return;
+
+        rules.push(rule);
+      });
+
+      return rules;
+    };
+
+    const updateSummary = () => {
+      const draftRules = getDraftRules();
+      const hostRules = draftRules.filter(rule => rule.host !== "");
+      const globalRules = draftRules.length - hostRules.length;
+      const distinctHosts = new Set(hostRules.map(rule => rule.host.toLowerCase()));
+      const totalRules = draftRules.length;
+
+      rulesSummary.textContent =
+        `You have ${hostRules.length} rules covering ${distinctHosts.size} hosts plus ${globalRules} global rules (${totalRules} total)`;
     };
 
     const createRuleRow = initialRule => {
@@ -171,6 +225,7 @@
 
         row.remove();
         updateEmptyState();
+        updateSummary();
       });
 
       row.addEventListener("dragstart", event => {
@@ -233,6 +288,20 @@
 
     addRuleButton.addEventListener("click", () => {
       appendRuleRow({ match: "title" }, true);
+      updateEmptyState();
+      updateSummary();
+    });
+
+    saveRulesButton.addEventListener("click", () => {
+      rulesForm.requestSubmit();
+    });
+
+    rulesList.addEventListener("input", () => {
+      updateSummary();
+    });
+
+    rulesList.addEventListener("change", () => {
+      updateSummary();
     });
 
     rulesList.addEventListener("dragover", event => {
@@ -251,45 +320,14 @@
     });
 
     rulesForm.addEventListener("submit", event => {
-      const rows = [...rulesList.querySelectorAll(".rule-row")];
-      const rules = [];
+      const rules = getDraftRules();
 
-      for (const rowElement of rows) {
-        if (!(rowElement instanceof HTMLElement))
-          continue;
-
-        const nameInput = rowElement.querySelector(".rule-input-name");
-        const hostInput = rowElement.querySelector(".rule-input-host");
-        const matchInput = rowElement.querySelector(".rule-input-match");
-        const regexInput = rowElement.querySelector(".rule-input-regex");
-
-        if (!(nameInput instanceof HTMLInputElement))
-          continue;
-        if (!(hostInput instanceof HTMLInputElement))
-          continue;
-        if (!(matchInput instanceof HTMLSelectElement))
-          continue;
-        if (!(regexInput instanceof HTMLInputElement))
-          continue;
-
-        const rule = {
-          name: nameInput.value.trim(),
-          host: hostInput.value.trim(),
-          match: matchInput.value.trim(),
-          regex: regexInput.value.trim()
-        };
-
-        const hasNoValues = rule.name === "" && rule.host === "" && rule.regex === "";
-        if (hasNoValues)
-          continue;
-
+      for (const rule of rules) {
         if (rule.name === "" || rule.regex === "") {
           event.preventDefault();
           window.alert("Each rule requires a name and regex");
           return;
         }
-
-        rules.push(rule);
       }
 
       rulesJsonInput.value = JSON.stringify(rules);
@@ -300,5 +338,7 @@
       updateEmptyState();
     else
       initialRules.forEach(rule => appendRuleRow(rule, false));
+
+    updateSummary();
   })();
 </script>
