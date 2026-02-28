@@ -232,6 +232,10 @@ const allowNavigationTemporarily = () => {
   }, 0);
 };
 
+const allowNavigationForSubmit = () => {
+  canNavigate = true;
+};
+
 const handleUnsafeNavigation = () => {
   if (!isDirty || canNavigate) {
     return true;
@@ -534,7 +538,7 @@ rulesForm.addEventListener("submit", (event) => {
   }
 
   rulesJsonInput.value = JSON.stringify(rules);
-  allowNavigationTemporarily();
+  allowNavigationForSubmit();
 });
 
 const initialRules = parseInitialRules();
