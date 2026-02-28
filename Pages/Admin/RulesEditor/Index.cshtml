@@ -354,9 +354,7 @@
         regex: rowElements.regexInput.value.trim(),
       };
 
-      const hasNoValues = rule.name === "" && rule.feed === "" &&
-        rule.regex === "";
-      if (hasNoValues) {
+      if (rule.name === "" && rule.feed === "" && rule.regex === "") {
         return null;
       }
 
@@ -446,7 +444,6 @@
       return shouldLeave;
     };
 
-    const SUMMARY_DEBOUNCE_MS = 120;
     let summaryDebounceHandle = 0;
 
     const scheduleSummaryUpdate = () => {
@@ -457,7 +454,7 @@
       summaryDebounceHandle = window.setTimeout(() => {
         summaryDebounceHandle = 0;
         updateSummary();
-      }, SUMMARY_DEBOUNCE_MS);
+      }, 120);
     };
 
     const createRuleRow = (initialRule) => {
@@ -504,11 +501,11 @@
         input: rowElements.regexTestInput,
         overlay: rowElements.regexTestOverlay,
         render: (sample) => {
-          const pattern = rowElements.regexInput.value;
-          const isInvalidPattern = rowElements.regexInput.classList.contains(
-            "is-invalid",
+          return getRegexTestOverlayState(
+            sample,
+            rowElements.regexInput.value,
+            rowElements.regexInput.classList.contains("is-invalid"),
           );
-          return getRegexTestOverlayState(sample, pattern, isInvalidPattern);
         },
       });
 
@@ -533,11 +530,9 @@
       };
 
       const openInRegex101 = () => {
-        const regex = rowElements.regexInput.value;
-        const sample = rowElements.regexTestInput.value;
         const search = new URLSearchParams({
-          regex,
-          testString: sample,
+          regex: rowElements.regexInput.value,
+          testString: rowElements.regexTestInput.value,
           flavor: "dotnet",
           flags: "i",
         });
