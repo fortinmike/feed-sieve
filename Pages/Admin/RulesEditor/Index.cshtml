@@ -441,7 +441,8 @@
   const search = new URLSearchParams({
   regex,
   testString: sample,
-  flavor: "dotnet"
+  flavor: "dotnet",
+  flags: "i"
   });
   window.open(`https://regex101.com/?${search.toString()}`, "_blank", "noopener,noreferrer");
   };
