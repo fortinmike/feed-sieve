@@ -3,6 +3,6 @@
   regex: \bad\b|advert(isement)?|sponsor(ed)?
 
 - rule: Rule that applies to a specific feed only
-  host: somesite.com
+  feed: somesite.com
   match: all
   regex: flamboyant|discombobulate

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using Microsoft.AspNetCore.WebUtilities;
 
 public class Processor
 {
@@ -15,13 +16,8 @@ public class Processor
     public XDocument Process(XDocument originalDocument, List<Rule> rules, string feedUrl)
     {
         // Loading rules is a very fast operation and doing it here ensures
-        // that we can modify the rules and they will be applied instantly.
-        var rulesForFeed = rules
-            .Where(r =>
-                r.Host == null // When a rule has no feed specified, then it applies to all feeds
-                || NormalizeUri(r.Host) == NormalizeUri(feedUrl) // Otherwise check if the rule applies to the feed we're processing
-            )
-            .ToList();
+        // that we can modify them and they will be applied instantly.
+        var rulesForFeed = rules.Where(r => RuleAppliesToFeed(r.Feed, feedUrl)).ToList();
 
         _logger.LogInformation($"Found {rulesForFeed.Count} rules matching feed {feedUrl}:");
         rulesForFeed.ForEach(r => _logger.LogDebug($"- {r.Name}"));
@@ -40,6 +36,71 @@ public class Processor
         return modifiedDocument;
     }
 
+    private bool RuleAppliesToFeed(string? ruleFeed, string feedUrl)
+    {
+        // When a rule has no feed specified, then it applies to all feeds
+        if (ruleFeed == null)
+            return true;
+
+        var normalizedRule = NormalizeUri(ruleFeed);
+        var normalizedFeed = NormalizeUri(feedUrl);
+        if (normalizedRule == null || normalizedFeed == null)
+            return false;
+
+        var ruleHost = normalizedRule.Host;
+        var feedHost = normalizedFeed.Host;
+        if (!string.Equals(ruleHost, feedHost, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (HasSpecificPath(normalizedRule) && !PathMatches(normalizedRule, normalizedFeed))
+            return false;
+
+        return !HasQuery(normalizedRule) || QueryMatches(normalizedRule, normalizedFeed);
+    }
+
+    private bool HasSpecificPath(Uri uri)
+    {
+        var path = NormalizePath(uri.AbsolutePath);
+        return path != "";
+    }
+
+    private string NormalizePath(string path)
+    {
+        if (path == "/" || string.IsNullOrWhiteSpace(path))
+            return "";
+
+        return path.TrimEnd('/').ToLowerInvariant();
+    }
+
+    private bool PathMatches(Uri ruleUri, Uri feedUri)
+    {
+        var rulePath = NormalizePath(ruleUri.AbsolutePath);
+        var feedPath = NormalizePath(feedUri.AbsolutePath);
+        return string.Equals(rulePath, feedPath, StringComparison.Ordinal);
+    }
+
+    private bool HasQuery(Uri uri)
+    {
+        return !string.IsNullOrWhiteSpace(uri.Query);
+    }
+
+    private bool QueryMatches(Uri ruleUri, Uri feedUri)
+    {
+        var ruleQuery = QueryHelpers.ParseQuery(ruleUri.Query);
+        var feedQuery = QueryHelpers.ParseQuery(feedUri.Query);
+
+        foreach (var queryParam in ruleQuery)
+        {
+            if (!feedQuery.TryGetValue(queryParam.Key, out var values))
+                return false;
+
+            if (!queryParam.Value.All(v => values.Contains(v)))
+                return false;
+        }
+
+        return true;
+    }
+
     private Uri? NormalizeUri(string url)
     {
         try
@@ -50,10 +111,9 @@ public class Processor
             var uri = new Uri(url);
             return new UriBuilder(uri)
             {
-                Scheme = "https", // Make sure differing schemes still match
-                Port = 443, // Same for port, otherwise UriBuilder adds `:80` under certain conditions
-                Host = uri.Host.ToLowerInvariant(),
-                Path = "" // Don't consider the path (host is granual enough for 99% of cases and simpler to configure)
+                Scheme = "https",
+                Port = 443,
+                Host = uri.Host.ToLowerInvariant()
             }.Uri;
         }
         catch (UriFormatException ex)

@@ -43,8 +43,8 @@
           <input type="text" class="rule-input-name" placeholder="Ads and Sponsors">
         </label>
         <label class="rule-field">
-          <span class="rule-field-label">Host</span>
-          <input type="text" class="rule-input-host" placeholder="example.com (optional)">
+          <span class="rule-field-label">Feed</span>
+          <input type="text" class="rule-input-feed" placeholder="example.com or https://site.com/feed.xml (optional)">
         </label>
         <label class="rule-field rule-field-match">
           <span class="rule-field-label">Match</span>
@@ -235,7 +235,7 @@
   const normalizeRule = rule => {
   return {
   name: typeof rule?.name === "string" ? rule.name : "",
-  host: typeof rule?.host === "string" ? rule.host : "",
+  feed: typeof rule?.feed === "string" ? rule.feed : "",
   match: typeof rule?.match === "string" ? rule.match : "title",
   regex: typeof rule?.regex === "string" ? rule.regex : "",
   sample: typeof rule?.sample === "string" ? rule.sample : ""
@@ -251,7 +251,7 @@
   return null;
 
   const nameInput = rowElement.querySelector(".rule-input-name");
-  const hostInput = rowElement.querySelector(".rule-input-host");
+  const feedInput = rowElement.querySelector(".rule-input-feed");
   const matchInput = rowElement.querySelector(".rule-input-match");
   const regexInput = rowElement.querySelector(".rule-input-regex");
   const regexTestToggle = rowElement.querySelector(".rule-regex-test-toggle");
@@ -266,7 +266,7 @@
 
   if (!(nameInput instanceof HTMLInputElement))
   return null;
-  if (!(hostInput instanceof HTMLInputElement))
+  if (!(feedInput instanceof HTMLInputElement))
   return null;
   if (!(matchInput instanceof HTMLSelectElement))
   return null;
@@ -294,7 +294,7 @@
   return {
   row: rowElement,
   nameInput,
-  hostInput,
+  feedInput,
   matchInput,
   regexInput,
   regexTestToggle,
@@ -313,12 +313,12 @@
   const sample = rowElements.regexTestInput.value.trim();
   const rule = {
   name: rowElements.nameInput.value.trim(),
-  host: rowElements.hostInput.value.trim(),
+  feed: rowElements.feedInput.value.trim(),
   match: rowElements.matchInput.value.trim(),
   regex: rowElements.regexInput.value.trim()
   };
 
-  const hasNoValues = rule.name === "" && rule.host === "" && rule.regex === "";
+  const hasNoValues = rule.name === "" && rule.feed === "" && rule.regex === "";
   if (hasNoValues)
   return null;
 
@@ -330,7 +330,7 @@
 
   const writeRule = (rowElements, rule) => {
   rowElements.nameInput.value = rule.name;
-  rowElements.hostInput.value = rule.host;
+  rowElements.feedInput.value = rule.feed;
   rowElements.matchInput.value = normalizeMatch(rule.match);
   rowElements.regexInput.value = rule.regex;
   rowElements.regexTestInput.value = rule.sample;
@@ -357,13 +357,13 @@
 
   const updateSummary = () => {
   const draftRules = getDraftRules();
-  const hostRules = draftRules.filter(rule => rule.host !== "");
-  const globalRules = draftRules.length - hostRules.length;
-  const distinctHosts = new Set(hostRules.map(rule => rule.host.toLowerCase()));
+  const scopedRules = draftRules.filter(rule => rule.feed !== "");
+  const globalRules = draftRules.length - scopedRules.length;
+  const distinctFeeds = new Set(scopedRules.map(rule => rule.feed.toLowerCase()));
   const totalRules = draftRules.length;
 
   rulesSummary.textContent =
-  `You have ${hostRules.length} rules covering ${distinctHosts.size} hosts plus ${globalRules} global rules (${totalRules} total)`;
+  `You have ${scopedRules.length} rules covering ${distinctFeeds.size} feeds plus ${globalRules} global rules (${totalRules} total)`;
   };
 
   const SUMMARY_DEBOUNCE_MS = 120;

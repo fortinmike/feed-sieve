@@ -105,13 +105,13 @@ public class RulesEditorModel : PageModel
         {
             var submittedRule = submittedRules[index];
             var name = submittedRule.Name.Trim();
-            var host = submittedRule.Host.Trim();
+            var feed = submittedRule.Feed.Trim();
             var match = submittedRule.Match.Trim().ToLowerInvariant();
             var regex = submittedRule.Regex.Trim();
             var sample = submittedRule.Sample.Trim();
 
             var hasNoValues =
-                string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(host) && string.IsNullOrWhiteSpace(regex);
+                string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(feed) && string.IsNullOrWhiteSpace(regex);
             if (hasNoValues)
                 continue;
 
@@ -128,7 +128,7 @@ public class RulesEditorModel : PageModel
                 new Rule
                 {
                     Name = name,
-                    Host = string.IsNullOrWhiteSpace(host) ? null : host,
+                    Feed = string.IsNullOrWhiteSpace(feed) ? null : feed,
                     Match = match,
                     Regex = regex,
                     Sample = string.IsNullOrWhiteSpace(sample) ? null : sample
@@ -149,7 +149,7 @@ public class RulesEditorModel : PageModel
         return new EditorRule
         {
             Name = rule.Name,
-            Host = rule.Host ?? "",
+            Feed = rule.Feed ?? "",
             Match = rule.Match,
             Regex = rule.Regex,
             Sample = rule.Sample ?? ""
@@ -170,7 +170,7 @@ public class RulesEditorModel : PageModel
     {
         public string Name { get; set; } = "";
 
-        public string Host { get; set; } = "";
+        public string Feed { get; set; } = "";
 
         public string Match { get; set; } = "title";
 

@@ -37,7 +37,7 @@ public class RegexFilter : FilterBase, IFilter
             return false;
 
         _logger.LogDebug(
-            $"Excluded '{title}' from feed '{rule.Host}' based on rule '{rule.Name}' due to {kind} match with regex '{rule.Regex}'"
+            $"Excluded '{title}' from feed '{rule.Feed}' based on rule '{rule.Name}' due to {kind} match with regex '{rule.Regex}'"
         );
         return true;
     }
