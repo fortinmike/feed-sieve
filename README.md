@@ -11,7 +11,7 @@ A simple but powerful RSS feed proxy that filters out unwanted items based on us
 
 - Setup simple regex-based rules to filter out unwanted items from your feeds
 - Match item title or content (or both) with regexes for maximum flexibility
-- Works with all RSS readers; subscribe with feed-sieve's `/filter` URL instead of the original feed URL
+- Auto-prefix YouTube Shorts with `[Short] ` (can be left as-is, or you can filter them out with a rule)
 - Works with all RSS readers; you subscribe to feed-sieve's URL rather than the original feed URL
 - Simple & no database; feeds are fetched and processed on-the-fly only when required
 - Seamless authentication to prevent use by unauthorized parties

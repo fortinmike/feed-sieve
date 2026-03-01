@@ -13,6 +13,8 @@ public class Processor
         _filters = filters;
     }
 
+    #region Public API
+
     public XDocument Process(XDocument originalDocument, List<Rule> rules, string feedUrl)
     {
         // Loading rules is a very fast operation and doing it here ensures
@@ -23,6 +25,7 @@ public class Processor
         rulesForFeed.ForEach(r => _logger.LogDebug($"- {r.Name}"));
 
         var itemsBefore = GetItems(originalDocument).ToList();
+        itemsBefore.ForEach(PrefixYouTubeShortTitles);
         var filteredItems = rulesForFeed.Aggregate(itemsBefore, FilterWithRule);
 
         // Create a new document and modify it
@@ -35,6 +38,10 @@ public class Processor
 
         return modifiedDocument;
     }
+
+    #endregion
+
+    #region Rule Matching
 
     private bool RuleAppliesToFeed(string? ruleFeed, string feedUrl)
     {
@@ -101,6 +108,10 @@ public class Processor
         return true;
     }
 
+    #endregion
+
+    #region URI Normalization
+
     private Uri? NormalizeUri(string url)
     {
         try
@@ -123,6 +134,10 @@ public class Processor
             return null;
         }
     }
+
+    #endregion
+
+    #region Item Processing
 
     private IEnumerable<XElement> GetItems(XDocument doc)
     {
@@ -152,6 +167,10 @@ public class Processor
         return items.Where(i => _filters.All(filter => filter.Keep(i, rule))).ToList();
     }
 
+    #endregion
+
+    #region Document Rewriting
+
     private void ReplaceItemsInDocument(XDocument document, List<XElement> filteredItems)
     {
         var channel = document.Root?.Element("channel");
@@ -166,4 +185,62 @@ public class Processor
             document.Root?.Add(filteredItems);
         }
     }
+
+    #endregion
+
+    #region YouTube Short Tagging
+
+    private void PrefixYouTubeShortTitles(XElement item)
+    {
+        var linkUrl = GetTitleUrl(item);
+        if (!IsYouTubeShortUrl(linkUrl))
+            return;
+
+        var titleElement = GetTitleElement(item);
+        if (titleElement == null)
+            return;
+
+        var title = titleElement.Value;
+        if (string.IsNullOrWhiteSpace(title) || title.StartsWith("[Short] ", StringComparison.Ordinal))
+            return;
+
+        titleElement.Value = $"[Short] {title}";
+    }
+
+    private XElement? GetTitleElement(XElement item)
+    {
+        return item.Elements().FirstOrDefault(e => e.Name.LocalName == "title");
+    }
+
+    private string GetTitleUrl(XElement item)
+    {
+        var linkElement = item.Elements()
+            .Where(e => e.Name.LocalName == "link")
+            .OrderByDescending(e =>
+                string.Equals((string?)e.Attribute("rel"), "alternate", StringComparison.OrdinalIgnoreCase)
+            )
+            .FirstOrDefault();
+        if (linkElement == null)
+            return "";
+
+        var href = (string?)linkElement.Attribute("href");
+        if (!string.IsNullOrWhiteSpace(href))
+            return href;
+
+        return linkElement.Value;
+    }
+
+    private bool IsYouTubeShortUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return false;
+
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return url.Contains("youtube.com/shorts", StringComparison.OrdinalIgnoreCase);
+
+        return uri.Host.Contains("youtube.com", StringComparison.OrdinalIgnoreCase)
+            && uri.AbsolutePath.StartsWith("/shorts", StringComparison.OrdinalIgnoreCase);
+    }
+
+    #endregion
 }

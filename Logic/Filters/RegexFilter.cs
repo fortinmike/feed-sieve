@@ -19,7 +19,7 @@ public class RegexFilter : FilterBase, IFilter
         bool exclude = false;
 
         // Exclude based on title
-        var title = GetValue(item, "title");
+        var title = GetTitle(item);
         if (rule.Match == "title" || rule.Match == "all")
             exclude |= Match("title", title, rule, title);
 

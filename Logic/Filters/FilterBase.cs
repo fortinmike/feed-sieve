@@ -5,6 +5,15 @@ public class FilterBase
     protected string GetValue(XElement parent, string localName, string? ns = null) =>
         (string?)parent.Element(ns is null ? localName : XName.Get(localName, ns)) ?? "";
 
+    protected string GetTitle(XElement item)
+    {
+        var title = GetValue(item, "title");
+        if (!string.IsNullOrWhiteSpace(title))
+            return title;
+
+        return GetValue(item, "title", Constants.AtomNamespace);
+    }
+
     protected string GetContent(XElement item)
     {
         // RSS 2.0 content:encoded
