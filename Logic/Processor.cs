@@ -54,8 +54,8 @@ public class Processor
         if (normalizedRule == null || normalizedFeed == null)
             return false;
 
-        var ruleHost = normalizedRule.Host;
-        var feedHost = normalizedFeed.Host;
+        var ruleHost = NormalizeHostForMatching(normalizedRule.Host);
+        var feedHost = NormalizeHostForMatching(normalizedFeed.Host);
         if (!string.Equals(ruleHost, feedHost, StringComparison.OrdinalIgnoreCase))
             return false;
 
@@ -63,6 +63,13 @@ public class Processor
             return false;
 
         return !HasQuery(normalizedRule) || QueryMatches(normalizedRule, normalizedFeed);
+    }
+
+    private string NormalizeHostForMatching(string host)
+    {
+        return host.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+            ? host["www.".Length..]
+            : host;
     }
 
     private bool HasSpecificPath(Uri uri)
