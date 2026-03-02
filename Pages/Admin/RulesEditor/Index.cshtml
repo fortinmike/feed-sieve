@@ -63,7 +63,7 @@
         </label>
         <label class="rule-field">
           <span class="rule-field-label">Feed</span>
-          <input type="text" class="rule-input-feed" placeholder="example.com or https://site.com/feed.xml (optional)">
+          <input type="text" class="rule-input-feed" placeholder="Domain, partial URL or full feed URL (optional)">
         </label>
         <label class="rule-field rule-field-match">
           <span class="rule-field-label">Match</span>
@@ -78,7 +78,7 @@
           <div class="rule-regex-stack">
             <div class="rule-regex-editor rule-overlay-editor">
               <div class="rule-regex-overlay rule-overlay" aria-hidden="true"></div>
-              <input type="text" class="rule-input-regex rule-overlay-input" placeholder="\\bad\\b|sponsor(ed)?"
+              <input type="text" class="rule-input-regex rule-overlay-input" placeholder="\b(?:advertisement|sponsor)\b"
                      spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" data-gramm="false"
                      data-gramm_editor="false" data-enable-grammarly="false" data-ms-editor="false">
               <button type="button" class="rule-regex-case-toggle" aria-label="Toggle case sensitivity"
