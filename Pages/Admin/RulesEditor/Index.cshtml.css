@@ -498,16 +498,76 @@
   display: none;
 }
 
-/* Feedback */
+/* Save toast */
 
-.rules-error {
-  margin-top: 0.65rem;
+.rules-toast-stack {
+  position: fixed;
+  top: 0.8rem;
+  left: 50%;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  width: fit-content;
+  max-width: calc(100vw - 1rem);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.rules-toast {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  border: var(--pico-border-width) solid var(--pico-form-element-border-color);
+  border-radius: var(--pico-border-radius);
+  background: var(--pico-card-background-color);
+  color: var(--pico-color);
+  font-size: 0.82rem;
+  line-height: 1.2;
+  box-shadow: 0 8px 20px color-mix(in srgb, black 12%, transparent);
+  pointer-events: auto;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.rules-toast > span {
+  overflow-wrap: anywhere;
+}
+
+.rules-toast.is-hiding {
+  opacity: 0;
+  transform: translateY(-0.25rem);
+}
+
+.rules-toast-error {
+  border-color: color-mix(in srgb, var(--pico-del-color) 65%, var(--pico-form-element-border-color));
   color: var(--pico-del-color);
 }
 
-.rules-success {
-  margin-top: 0.65rem;
+.rules-toast-success {
+  border-color: color-mix(in srgb, var(--pico-ins-color) 65%, var(--pico-form-element-border-color));
   color: var(--pico-ins-color);
+}
+
+.pico .rules-toast-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: currentColor;
+  font-size: 1rem;
+  line-height: 1;
+  box-shadow: none;
 }
 
 @media (max-width: 640px) {

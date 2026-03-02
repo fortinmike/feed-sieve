@@ -14,6 +14,25 @@
       <span class="subpage-save-icon" aria-hidden="true"></span>
     </button>
   </div>
+  @if (Model.ErrorMessage is not null || Model.SuccessMessage is not null)
+  {
+    <div class="rules-toast-stack" aria-live="polite">
+      @if (Model.ErrorMessage is not null)
+      {
+        <div class="rules-toast rules-toast-error" data-save-toast role="alert">
+          <span>@Model.ErrorMessage</span>
+          <button type="button" class="rules-toast-close" aria-label="Dismiss notification">×</button>
+        </div>
+      }
+      @if (Model.SuccessMessage is not null)
+      {
+        <div class="rules-toast rules-toast-success" data-save-toast role="status">
+          <span>@Model.SuccessMessage</span>
+          <button type="button" class="rules-toast-close" aria-label="Dismiss notification">×</button>
+        </div>
+      }
+    </div>
+  }
   <p id="rulesSummary" class="page-description"></p>
   <form method="post" class="rules-form" id="rulesForm">
     @Html.AntiForgeryToken()
@@ -88,14 +107,6 @@
       </div>
     </article>
   </template>
-  @if (Model.ErrorMessage is not null)
-  {
-    <p class="rules-error">@Model.ErrorMessage</p>
-  }
-  @if (Model.SuccessMessage is not null)
-  {
-    <p class="rules-success">@Model.SuccessMessage</p>
-  }
 </main>
 <script id="initialRulesData" type="application/json">@Html.Raw(Model.InitialRulesJson)</script>
 <script src="/vendor/regex-colorizer/regex-colorizer.min.js" asp-append-version="true"></script>

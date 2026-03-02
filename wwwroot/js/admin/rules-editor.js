@@ -554,6 +554,20 @@ if (initialRules.length === 0) {
   initialRules.forEach((rule) => appendRuleRow(rule, false));
 }
 
+document.querySelectorAll("[data-save-toast]").forEach((toast) => {
+  const dismiss = () => {
+    if (toast.classList.contains("is-hiding")) {
+      return;
+    }
+
+    toast.classList.add("is-hiding");
+    window.setTimeout(() => toast.remove(), 140);
+  };
+
+  toast.querySelector(".rules-toast-close")?.addEventListener("click", dismiss);
+  window.setTimeout(dismiss, 3200);
+});
+
 updateSummary();
 savedRulesSnapshot = JSON.stringify(getDraftRules());
 markDirtyState();
