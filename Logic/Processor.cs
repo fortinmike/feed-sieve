@@ -56,7 +56,7 @@ public class Processor
 
         var ruleHost = NormalizeHostForMatching(normalizedRule.Host);
         var feedHost = NormalizeHostForMatching(normalizedFeed.Host);
-        if (!string.Equals(ruleHost, feedHost, StringComparison.OrdinalIgnoreCase))
+        if (!HostMatches(ruleHost, feedHost))
             return false;
 
         if (HasSpecificPath(normalizedRule) && !PathMatches(normalizedRule, normalizedFeed))
@@ -70,6 +70,12 @@ public class Processor
         return host.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
             ? host["www.".Length..]
             : host;
+    }
+
+    private bool HostMatches(string ruleHost, string feedHost)
+    {
+        return string.Equals(ruleHost, feedHost, StringComparison.OrdinalIgnoreCase)
+            || feedHost.EndsWith($".{ruleHost}", StringComparison.OrdinalIgnoreCase);
     }
 
     private bool HasSpecificPath(Uri uri)
