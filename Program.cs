@@ -7,13 +7,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 // Register core services
-// Fail fast before feed readers (for example NetNewsWire at ~15s with 1 connection per host) time out and stall their queue
 builder
     .Services.AddHttpClient(
         "upstream-feed",
         client =>
         {
-            client.Timeout = TimeSpan.FromSeconds(10);
+            client.Timeout = TimeSpan.FromSeconds(20); // Times out after most feed readers, as a last resort
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Feed Sieve (RSS Reader)");
             client.DefaultRequestHeaders.UserAgent.ParseAdd("NetNewsWire (RSS Reader; https://netnewswire.com/)");
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/rss+xml"));

@@ -9,7 +9,6 @@ using Stopwatch = System.Diagnostics.Stopwatch;
 [Route("/")]
 public class FilterController : ControllerBase
 {
-    private const long RequestDurationWarningThresholdMs = 10_000;
     private static readonly TimeSpan DefaultRateLimitCooldown = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan MaxRateLimitCooldown = TimeSpan.FromHours(24);
     private static int _inFlightRequests;
@@ -226,19 +225,6 @@ public class FilterController : ControllerBase
 
     private void LogRequestDuration(string feedUrl, string outcome, int? statusCode, long elapsedMs, int inFlightAfter)
     {
-        if (elapsedMs > RequestDurationWarningThresholdMs)
-        {
-            _logger.LogWarning(
-                "Completed in {ElapsedMs}ms ({Outcome}, {StatusCode}, inFlightAfter={InFlightAfter}) for {FeedUrl}",
-                elapsedMs,
-                outcome,
-                statusCode,
-                inFlightAfter,
-                feedUrl
-            );
-            return;
-        }
-
         _logger.LogInformation(
             "Completed in {ElapsedMs}ms ({Outcome}, {StatusCode}, inFlightAfter={InFlightAfter}) for {FeedUrl}",
             elapsedMs,
