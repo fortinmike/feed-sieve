@@ -29,8 +29,8 @@ public class FailuresController : ControllerBase
         var failures = _failureStore.GetCurrentFailures().OrderByDescending(failure => failure.LastFailureUtc).ToList();
 
         var feed = new SyndicationFeed(
-            "feed-sieve broken feeds",
-            "Feeds currently failing in this feed-sieve instance",
+            "Feed Sieve Failures",
+            "Feeds currently failing in this Feed Sieve instance",
             new Uri(feedUrl),
             "feed-sieve:failures",
             failures.FirstOrDefault()?.LastFailureUtc ?? DateTimeOffset.UtcNow

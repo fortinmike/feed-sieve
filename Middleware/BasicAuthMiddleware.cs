@@ -8,11 +8,7 @@ public class BasicAuthMiddleware
     private readonly BasicAuthOptions _options;
     private readonly IReadOnlyList<PathString> _protectedPathPrefixes;
 
-    public BasicAuthMiddleware(
-        RequestDelegate next,
-        ILogger<BasicAuthMiddleware> logger,
-        BasicAuthOptions options
-    )
+    public BasicAuthMiddleware(RequestDelegate next, ILogger<BasicAuthMiddleware> logger, BasicAuthOptions options)
     {
         _next = next;
         _logger = logger;

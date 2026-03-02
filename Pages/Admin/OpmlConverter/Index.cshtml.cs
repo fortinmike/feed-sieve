@@ -52,7 +52,11 @@ public class OpmlConverterModel : PageModel
             document.Save(outputStream);
 
         var outputFileName = BuildOutputFileName(OpmlFile.FileName);
-        DownloadUrl = Url.Page("/Admin/OpmlConverter/Index", "Download", new { id = downloadId, fileName = outputFileName });
+        DownloadUrl = Url.Page(
+            "/Admin/OpmlConverter/Index",
+            "Download",
+            new { id = downloadId, fileName = outputFileName }
+        );
 
         return Page();
     }
