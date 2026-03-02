@@ -83,7 +83,10 @@ public class Processor
     {
         var rulePath = NormalizePath(ruleUri.AbsolutePath);
         var feedPath = NormalizePath(feedUri.AbsolutePath);
-        return string.Equals(rulePath, feedPath, StringComparison.Ordinal);
+        if (!feedPath.StartsWith(rulePath, StringComparison.Ordinal))
+            return false;
+
+        return feedPath.Length == rulePath.Length || feedPath[rulePath.Length] == '/';
     }
 
     private bool HasQuery(Uri uri)
