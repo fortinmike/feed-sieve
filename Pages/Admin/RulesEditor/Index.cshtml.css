@@ -85,8 +85,14 @@
   --rule-regex-padding-y: 0.28rem;
   --rule-regex-padding-x: 1rem;
   --rule-regex-toggle-right: 0.5rem;
+  --rule-regex-toggle-gap: 0.12rem;
   --rule-regex-toggle-hit-size: 1.5rem;
-  --rule-regex-right-inset: 0.7rem;
+  --rule-regex-case-toggle-right: calc(
+    var(--rule-regex-toggle-right) + var(--rule-regex-toggle-hit-size) + var(--rule-regex-toggle-gap)
+  );
+  --rule-regex-right-inset: calc(
+    (var(--rule-regex-toggle-hit-size) * 2) + var(--rule-regex-toggle-gap) + var(--rule-regex-toggle-right) - 0.25rem
+  );
   --rule-regex-padding-right: calc(var(--rule-regex-padding-x) + var(--rule-regex-right-inset));
   --rule-regex-font-size: 0.86rem;
   --rule-regex-line-height: 1.35;
@@ -371,11 +377,11 @@
 
 /* Regex test toggle + match state */
 
+.pico .rule-regex-case-toggle,
 .pico .rule-regex-test-toggle,
 .pico .rule-regex101-link {
   position: absolute;
   top: 50%;
-  right: var(--rule-regex-toggle-right);
   z-index: 4;
   display: inline-flex;
   align-items: center;
@@ -391,12 +397,45 @@
   transform: translateY(-50%);
 }
 
+.pico .rule-regex-case-toggle {
+  right: var(--rule-regex-case-toggle-right);
+  color: #fff;
+}
+
+.pico .rule-regex-case-toggle.is-case-sensitive {
+  color: #49a0ff;
+}
+
+.pico .rule-regex-test-toggle,
+.pico .rule-regex101-link {
+  right: var(--rule-regex-toggle-right);
+}
+
+.pico .rule-regex-case-toggle:hover,
+.pico .rule-regex-case-toggle:focus-visible {
+  color: #fff;
+}
+
+.pico .rule-regex-case-toggle.is-case-sensitive:hover,
+.pico .rule-regex-case-toggle.is-case-sensitive:focus-visible {
+  color: #49a0ff;
+}
+
 .pico .rule-regex-test-toggle:hover,
 .pico .rule-regex-test-toggle:focus-visible,
 .pico .rule-regex-test-toggle.is-active,
 .pico .rule-regex101-link:hover,
 .pico .rule-regex101-link:focus-visible {
   color: var(--pico-color);
+}
+
+.rule-regex-case-toggle-icon {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  background-color: currentColor;
+  -webkit-mask: url("/images/case-sensitive.svg") center / contain no-repeat;
+  mask: url("/images/case-sensitive.svg") center / contain no-repeat;
 }
 
 .rule-regex-test-toggle-icon {

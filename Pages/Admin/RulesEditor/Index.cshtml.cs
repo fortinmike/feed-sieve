@@ -108,6 +108,7 @@ public class RulesEditorModel : PageModel
             var feed = submittedRule.Feed.Trim();
             var match = submittedRule.Match.Trim().ToLowerInvariant();
             var regex = submittedRule.Regex.Trim();
+            var caseSensitive = submittedRule.CaseSensitive;
             var sample = submittedRule.Sample.Trim();
 
             var hasNoValues =
@@ -131,6 +132,7 @@ public class RulesEditorModel : PageModel
                     Feed = string.IsNullOrWhiteSpace(feed) ? null : feed,
                     Match = match,
                     Regex = regex,
+                    CaseSensitive = caseSensitive,
                     Sample = string.IsNullOrWhiteSpace(sample) ? null : sample
                 }
             );
@@ -152,6 +154,7 @@ public class RulesEditorModel : PageModel
             Feed = rule.Feed ?? "",
             Match = rule.Match,
             Regex = rule.Regex,
+            CaseSensitive = rule.CaseSensitive,
             Sample = rule.Sample ?? ""
         };
     }
@@ -175,6 +178,8 @@ public class RulesEditorModel : PageModel
         public string Match { get; set; } = "title";
 
         public string Regex { get; set; } = "";
+
+        public bool CaseSensitive { get; set; } = false;
 
         public string Sample { get; set; } = "";
     }

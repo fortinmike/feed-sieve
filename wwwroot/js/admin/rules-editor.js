@@ -60,7 +60,7 @@ const escapeHtml = (value) => {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 };
 
-const getRegexTestOverlayState = (sample, pattern, isInvalidPattern) => {
+const getRegexTestOverlayState = (sample, pattern, isInvalidPattern, caseSensitive) => {
   if (sample === "") {
     return { html: "", isMatch: false };
   }
@@ -70,7 +70,7 @@ const getRegexTestOverlayState = (sample, pattern, isInvalidPattern) => {
 
   let regex;
   try {
-    regex = new RegExp(pattern, "gi");
+    regex = new RegExp(pattern, caseSensitive ? "g" : "gi");
   } catch {
     return { html: escapeHtml(sample), isMatch: false };
   }
@@ -127,6 +127,7 @@ const normalizeRule = (rule) => {
     feed: typeof rule?.feed === "string" ? rule.feed : "",
     match: typeof rule?.match === "string" ? rule.match : "title",
     regex: typeof rule?.regex === "string" ? rule.regex : "",
+    caseSensitive: rule?.caseSensitive === true,
     sample: typeof rule?.sample === "string" ? rule.sample : "",
   };
 };
@@ -142,6 +143,7 @@ const getRuleRowElements = (rowElement) => {
     feedInput: rowElement.querySelector(".rule-input-feed"),
     matchInput: rowElement.querySelector(".rule-input-match"),
     regexInput: rowElement.querySelector(".rule-input-regex"),
+    regexCaseToggle: rowElement.querySelector(".rule-regex-case-toggle"),
     regexTestToggle: rowElement.querySelector(".rule-regex-test-toggle"),
     regexTestEditor: rowElement.querySelector(".rule-regex-test-editor"),
     regexTestInput: rowElement.querySelector(".rule-input-regex-test"),
@@ -161,6 +163,7 @@ const readDraftRule = (rowElements) => {
     feed: rowElements.feedInput.value.trim(),
     match: rowElements.matchInput.value.trim(),
     regex: rowElements.regexInput.value.trim(),
+    caseSensitive: rowElements.regexCaseToggle.classList.contains("is-case-sensitive"),
   };
 
   if (rule.name === "" && rule.feed === "" && rule.regex === "") {
@@ -179,11 +182,18 @@ const writeRule = (rowElements, rule) => {
   rowElements.feedInput.value = rule.feed;
   rowElements.matchInput.value = normalizeMatch(rule.match);
   rowElements.regexInput.value = rule.regex;
+  setCaseSensitive(rowElements, rule.caseSensitive);
   rowElements.regexTestInput.value = rule.sample;
   const hasSample = rule.sample !== "";
   rowElements.regexTestEditor.hidden = !hasSample;
   rowElements.regexTestToggle.setAttribute("aria-expanded", String(hasSample));
   rowElements.regexTestToggle.classList.toggle("is-active", hasSample);
+};
+
+const setCaseSensitive = (rowElements, isCaseSensitive) => {
+  rowElements.regexCaseToggle.classList.toggle("is-case-sensitive", isCaseSensitive);
+  rowElements.regexCaseToggle.setAttribute("aria-pressed", String(isCaseSensitive));
+  rowElements.regexCaseToggle.title = isCaseSensitive ? "Case-sensitive" : "Case-insensitive";
 };
 
 const updateEmptyState = () => {
@@ -299,6 +309,7 @@ const createRuleRow = (initialRule) => {
         sample,
         rowElements.regexInput.value,
         rowElements.regexInput.classList.contains("is-invalid"),
+        rowElements.regexCaseToggle.classList.contains("is-case-sensitive"),
       );
     },
   });
@@ -318,11 +329,12 @@ const createRuleRow = (initialRule) => {
   };
 
   const openInRegex101 = () => {
+    const flags = rowElements.regexCaseToggle.classList.contains("is-case-sensitive") ? "" : "i";
     const search = new URLSearchParams({
       regex: rowElements.regexInput.value,
       testString: rowElements.regexTestInput.value,
       flavor: "dotnet",
-      flags: "i",
+      flags,
     });
     window.open(`https://regex101.com/?${search.toString()}`, "_blank", "noopener,noreferrer");
   };
@@ -334,23 +346,17 @@ const createRuleRow = (initialRule) => {
     updateRegexTestState();
   };
 
-  const normalizeRegexInput = () => {
-    const normalized = rowElements.regexInput.value.toLowerCase();
-    if (normalized === rowElements.regexInput.value) {
-      return;
-    }
-
-    const selectionStart = rowElements.regexInput.selectionStart;
-    const selectionEnd = rowElements.regexInput.selectionEnd;
-    rowElements.regexInput.value = normalized;
-    if (selectionStart !== null && selectionEnd !== null) {
-      rowElements.regexInput.setSelectionRange(selectionStart, selectionEnd);
-    }
-  };
-
   rowElements.regexInput.addEventListener("input", () => {
-    normalizeRegexInput();
     updateRegexUi();
+  });
+  rowElements.regexCaseToggle.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+  });
+  rowElements.regexCaseToggle.addEventListener("click", () => {
+    const isCaseSensitive = !rowElements.regexCaseToggle.classList.contains("is-case-sensitive");
+    setCaseSensitive(rowElements, isCaseSensitive);
+    updateRegexUi();
+    refreshDirtyState();
   });
   rowElements.regexTestToggle.addEventListener("pointerdown", (event) => {
     event.preventDefault();

@@ -33,7 +33,8 @@ public class RegexFilter : FilterBase, IFilter
 
     private bool Match(string kind, string title, Rule rule, string text)
     {
-        if (!Regex.IsMatch(text, rule.Regex, RegexOptions.IgnoreCase))
+        var options = rule.CaseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase;
+        if (!Regex.IsMatch(text, rule.Regex, options))
             return false;
 
         _logger.LogDebug(
