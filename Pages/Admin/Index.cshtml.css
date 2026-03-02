@@ -1,3 +1,18 @@
+.admin-section h2 {
+  margin: 0 0 0.75rem;
+  color: var(--pico-muted-color);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-section {
+  border-top: var(--pico-border-width) solid var(--pico-muted-border-color);
+  margin-top: 1.6rem;
+  padding-top: 1rem;
+}
+
 .groups {
   display: grid;
   gap: 1rem;

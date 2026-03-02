@@ -1,6 +1,12 @@
 @page "/admin"
+@inject IConfiguration Configuration
 @{
   ViewData["Title"] = "Admin";
+  var secret = Configuration["Secret"];
+  var requestBaseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
+  var failuresFeedUrl = $"{requestBaseUrl}/failures";
+  if (!string.IsNullOrWhiteSpace(secret))
+    failuresFeedUrl = $"{failuresFeedUrl}?secret={Uri.EscapeDataString(secret)}";
 }
 <main class="pico">
   <h1>Admin</h1>
@@ -14,18 +20,30 @@
     feed-sieve URLs and re-import them in your feed reader. Afterwards, when you want to subscribe to a new feed, you
     convert the feed to a filtered URL and subscribe to that.
   </p>
-  <div class="groups">
-    <div class="group">
-      <a href="/admin/rules">Rules</a>
-      <p>Create, reorder, and delete filtering rules</p>
+  <section class="admin-section">
+    <h2>Tools</h2>
+    <div class="groups">
+      <div class="group">
+        <a href="/admin/rules">Rules</a>
+        <p>Create, reorder, and delete filtering rules</p>
+      </div>
+      <div class="group">
+        <a href="/admin/feed-converter">Feed Converter</a>
+        <p>Convert a single feed to a filtered URL</p>
+      </div>
+      <div class="group">
+        <a href="/admin/opml-converter">OPML Converter</a>
+        <p>Batch-convert your feeds to filtered URLs</p>
+      </div>
     </div>
-    <div class="group">
-      <a href="/admin/feed-converter">Feed Converter</a>
-      <p>Convert a single feed to a filtered URL</p>
+  </section>
+  <section class="admin-section">
+    <h2>Special Feeds</h2>
+    <div class="groups">
+      <div class="group">
+        <a href="@failuresFeedUrl">Failures Feed</a>
+        <p>Built-in RSS feed listing upstream feeds currently failing in this feed-sieve instance</p>
+      </div>
     </div>
-    <div class="group">
-      <a href="/admin/opml-converter">OPML Converter</a>
-      <p>Batch-convert your feeds to filtered URLs</p>
-    </div>
-  </div>
+  </section>
 </main>
