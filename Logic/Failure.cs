@@ -7,6 +7,7 @@ public sealed record Failure(
     DateTimeOffset FirstFailureUtc,
     DateTimeOffset LastFailureUtc,
     int FailureCount,
+    string Id,
     int? HttpStatusCode = null,
     string? HttpReasonPhrase = null,
     string? FinalUrl = null,

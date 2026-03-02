@@ -61,7 +61,7 @@ public class FailuresController : ControllerBase
         var item = new SyndicationItem
         {
             Title = SyndicationContent.CreatePlaintextContent(title),
-            Id = $"feed-sieve:failure:{failure.FeedUrl.Hash()}",
+            Id = failure.Id,
             PublishDate = failure.LastFailureUtc,
             LastUpdatedTime = failure.LastFailureUtc,
             Summary = SyndicationContent.CreateHtmlContent(CreateSummaryHtml(failure))

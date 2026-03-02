@@ -41,12 +41,18 @@ builder.Logging.AddConsoleFormatter<MessageOnlyConsoleFormatter, ConsoleFormatte
 builder.Logging.AddFilter("Microsoft.Extensions.Http", LogLevel.Warning);
 builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
 var isCacheEnabled = builder.Configuration.GetValue<bool?>("Cache") ?? true;
+var failureResetThresholdInHours = builder.Configuration.GetValue<double>("FailureResetThresholdInHours");
 
 // Register our own services (for the app's logic)
 builder.Services.AddSingleton<ICache>(
     isCacheEnabled ? new Cache(new DirectoryInfo("./storage/cache")) : new NullCache()
 );
-builder.Services.AddSingleton(new FailureStore(new DirectoryInfo("./storage/failures")));
+builder.Services.AddSingleton(
+    new FailureStore(
+        new DirectoryInfo("./storage/failures"),
+        TimeSpan.FromHours(failureResetThresholdInHours)
+    )
+);
 builder.Services.AddSingleton<UpstreamFeedClient>();
 builder.Services.AddScoped<Processor>();
 builder.Services.AddScoped<IFilter, RegexFilter>();

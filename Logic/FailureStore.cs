@@ -6,10 +6,12 @@ public sealed class FailureStore
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private readonly DirectoryInfo _directory;
+    private readonly TimeSpan _failureResetThreshold;
 
-    public FailureStore(DirectoryInfo directory)
+    public FailureStore(DirectoryInfo directory, TimeSpan failureResetThreshold)
     {
         _directory = directory;
+        _failureResetThreshold = failureResetThreshold;
 
         if (!_directory.Exists)
             _directory.Create();
@@ -97,24 +99,29 @@ public sealed class FailureStore
         return Path.Combine(_directory.FullName, feedUrl.ToSafeFileName());
     }
 
-    private static void WriteState(string dir, UpstreamFailureInfo failureInfo)
+    private void WriteState(string dir, UpstreamFailureInfo failureInfo)
     {
         var now = DateTimeOffset.UtcNow;
         var statePath = Path.Combine(dir, "state.json");
         var existingState = ReadState(statePath);
+        var isNewIncident = existingState == null || now - existingState.LastFailureUtc > _failureResetThreshold;
+        var firstFailureUtc = existingState?.FirstFailureUtc ?? now;
+        var failureCount = (existingState?.FailureCount ?? 0) + 1;
+        var id = isNewIncident ? Guid.NewGuid().ToString("N") : existingState!.Id;
         var state = new Failure(
             FeedUrl: failureInfo.FeedUrl,
             SafeFeedId: failureInfo.FeedUrl.ToSafeFileName(),
             FailureType: failureInfo.FailureType,
             UserMessage: CreateUserMessage(failureInfo),
             Message: failureInfo.Message,
-            FirstFailureUtc: existingState?.FirstFailureUtc ?? now,
+            FirstFailureUtc: firstFailureUtc,
             LastFailureUtc: now,
-            FailureCount: (existingState?.FailureCount ?? 0) + 1,
+            FailureCount: failureCount,
             HttpStatusCode: failureInfo.HttpStatusCode is { } statusCode ? (int)statusCode : null,
             HttpReasonPhrase: failureInfo.HttpReasonPhrase,
             FinalUrl: failureInfo.FinalUrl,
-            Redirects: failureInfo.Redirects
+            Redirects: failureInfo.Redirects,
+            Id: id
         );
 
         var json = JsonSerializer.Serialize(state, JsonOptions);
