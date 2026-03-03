@@ -15,7 +15,7 @@ public class FilterUrlBuilder
             return feedUrl;
 
         var endpoint = $"{BuildHttpsBaseUrl(request)}/filter";
-        var encodedFeedUrl = Uri.EscapeDataString(feedUrl);
+        var encodedFeedUrl = Uri.EscapeDataString(UpgradeToHttps(feedUrl));
         var encodedSecret = Uri.EscapeDataString(_secret);
         return $"{endpoint}?url={encodedFeedUrl}&secret={encodedSecret}";
     }
@@ -37,5 +37,19 @@ public class FilterUrlBuilder
     {
         var authority = request.Host.Port is null or 80 or 443 ? request.Host.Host : request.Host.Value;
         return $"https://{authority}{request.PathBase}";
+    }
+
+    private static string UpgradeToHttps(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return url;
+
+        if (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase))
+            return url;
+
+        var builder = new UriBuilder(uri) { Scheme = Uri.UriSchemeHttps };
+        if (builder.Port == 80)
+            builder.Port = -1;
+        return builder.Uri.ToString();
     }
 }
