@@ -6,9 +6,7 @@ public class FilterUrlBuilder
 
     public FilterUrlBuilder(IConfiguration configuration)
     {
-        _secret = configuration["Secret"] ?? "";
-        if (string.IsNullOrWhiteSpace(_secret))
-            throw new InvalidOperationException("Secret must be set in configuration");
+        _secret = configuration.GetRequiredSection("Secret").Value!;
     }
 
     public string Build(HttpRequest request, string feedUrl)

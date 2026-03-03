@@ -40,36 +40,32 @@ builder.Logging.AddConsole(options => options.FormatterName = MessageOnlyConsole
 builder.Logging.AddConsoleFormatter<MessageOnlyConsoleFormatter, ConsoleFormatterOptions>();
 builder.Logging.AddFilter("Microsoft.Extensions.Http", LogLevel.Warning);
 builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
-var isCacheEnabled = builder.Configuration.GetValue<bool?>("Cache") ?? true;
-var failureResetThresholdInHours = builder.Configuration.GetValue<double>("FailureResetThresholdInHours");
+var isCacheEnabled = builder.Configuration.GetRequiredSection("Cache").Get<bool>();
+var failureResetThresholdInHours = builder
+    .Configuration.GetRequiredSection("FailureResetThresholdInHours")
+    .Get<double>();
 
 // Register our own services (for the app's logic)
 builder.Services.AddSingleton<ICache>(
     isCacheEnabled ? new Cache(new DirectoryInfo("./storage/cache")) : new NullCache()
 );
 builder.Services.AddSingleton(
-    new FailureStore(
-        new DirectoryInfo("./storage/failures"),
-        TimeSpan.FromHours(failureResetThresholdInHours)
-    )
+    new FailureStore(new DirectoryInfo("./storage/failures"), TimeSpan.FromHours(failureResetThresholdInHours))
 );
 builder.Services.AddSingleton<UpstreamFeedClient>();
 builder.Services.AddScoped<Processor>();
 builder.Services.AddScoped<IFilter, RegexFilter>();
 builder.Services.AddSingleton<FilterUrlBuilder>();
 
-var isAdminAuthEnabled = builder.Configuration.GetValue<bool?>("Auth:Enabled");
-if (isAdminAuthEnabled is null)
-    throw new InvalidOperationException("Auth:Enabled must be set in app settings (currently null)");
+var authSection = builder.Configuration.GetRequiredSection("Auth");
+var isAdminAuthEnabledValue = authSection.GetRequiredSection("Enabled").Get<bool>();
 
 var baseSettings = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
 
-var defaultSecret = baseSettings["Secret"] ?? "";
-var secret = builder.Configuration["Secret"];
+var defaultSecret = baseSettings.GetRequiredSection("Secret").Value!;
+var secret = builder.Configuration.GetRequiredSection("Secret").Value!;
 if (string.IsNullOrWhiteSpace(secret) || secret == defaultSecret)
     throw new InvalidOperationException("Secret must be overridden in app settings");
-
-var isAdminAuthEnabledValue = isAdminAuthEnabled.Value;
 
 var app = builder.Build();
 
@@ -78,11 +74,12 @@ app.UseStaticFiles();
 
 if (isAdminAuthEnabledValue)
 {
-    var defaultAuthUsername = baseSettings["Auth:Username"] ?? "";
-    var authUsername = builder.Configuration["Auth:Username"];
+    var defaultAuthSection = baseSettings.GetRequiredSection("Auth");
+    var defaultAuthUsername = defaultAuthSection.GetRequiredSection("Username").Value!;
+    var authUsername = authSection.GetRequiredSection("Username").Value;
 
-    var defaultAuthPassword = baseSettings["Auth:Password"] ?? "";
-    var authPassword = builder.Configuration["Auth:Password"];
+    var defaultAuthPassword = defaultAuthSection.GetRequiredSection("Password").Value!;
+    var authPassword = authSection.GetRequiredSection("Password").Value;
 
     if (
         string.IsNullOrWhiteSpace(authUsername)

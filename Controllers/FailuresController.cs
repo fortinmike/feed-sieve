@@ -20,8 +20,8 @@ public class FailuresController : ControllerBase
     [HttpGet("failures")]
     public IActionResult Failures([FromQuery] string? secret)
     {
-        var correctSecret = _configuration["Secret"] ?? "";
-        if (correctSecret != "" && secret != correctSecret)
+        var correctSecret = _configuration.GetRequiredSection("Secret").Value!;
+        if (secret != correctSecret)
             return Unauthorized();
 
         var requestBaseUrl = $"{Request.Scheme}://{Request.Host}";

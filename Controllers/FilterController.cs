@@ -58,8 +58,8 @@ public class FilterController : ControllerBase
 
         try
         {
-            var correctSecret = _configuration["Secret"];
-            if (correctSecret != "" && secret != correctSecret)
+            var correctSecret = _configuration.GetRequiredSection("Secret").Value!;
+            if (secret != correctSecret)
             {
                 var attemptedSecret = secret == null ? "no secret" : $"attempted secret '{secret}'";
                 _logger.LogWarning(
@@ -69,8 +69,9 @@ public class FilterController : ControllerBase
             }
 
             var ruleset = "default";
-            var returnCachedFeedOnUpstreamFailure =
-                _configuration.GetValue<bool?>("ReturnCachedFeedOnUpstreamFailure") ?? !_env.IsDevelopment();
+            var returnCachedFeedOnUpstreamFailure = _configuration
+                .GetRequiredSection("ReturnCachedFeedOnUpstreamFailure")
+                .Get<bool>();
 
             if (_cache.GetDoNotUpdateBeforeUtc(feedUrl) is DateTimeOffset doNotUpdateBeforeUtc && doNotUpdateBeforeUtc > DateTimeOffset.UtcNow)
             {

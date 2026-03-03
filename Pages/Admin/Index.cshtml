@@ -2,11 +2,9 @@
 @inject IConfiguration Configuration
 @{
   ViewData["Title"] = "Admin";
-  var secret = Configuration["Secret"];
+  var secret = Configuration.GetRequiredSection("Secret").Value!;
   var requestBaseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
-  var failuresFeedUrl = $"{requestBaseUrl}/failures";
-  if (!string.IsNullOrWhiteSpace(secret))
-    failuresFeedUrl = $"{failuresFeedUrl}?secret={Uri.EscapeDataString(secret)}";
+  var failuresFeedUrl = $"{requestBaseUrl}/failures?secret={Uri.EscapeDataString(secret)}";
 }
 <main class="pico">
   <h1>Admin</h1>
