@@ -14,7 +14,7 @@ public class FilterUrlBuilder
         if (IsFeedSieveUrl(feedUrl))
             return feedUrl;
 
-        var endpoint = $"{request.Scheme}://{request.Host}{request.PathBase}/filter";
+        var endpoint = $"{BuildHttpsBaseUrl(request)}/filter";
         var encodedFeedUrl = Uri.EscapeDataString(feedUrl);
         var encodedSecret = Uri.EscapeDataString(_secret);
         return $"{endpoint}?url={encodedFeedUrl}&secret={encodedSecret}";
@@ -31,5 +31,11 @@ public class FilterUrlBuilder
 
         var query = QueryHelpers.ParseQuery(candidateUri.Query);
         return query.ContainsKey("url");
+    }
+
+    private static string BuildHttpsBaseUrl(HttpRequest request)
+    {
+        var authority = request.Host.Port is null or 80 or 443 ? request.Host.Host : request.Host.Value;
+        return $"https://{authority}{request.PathBase}";
     }
 }
