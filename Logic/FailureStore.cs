@@ -6,12 +6,12 @@ public sealed class FailureStore
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private readonly DirectoryInfo _directory;
-    private readonly TimeSpan _failureResetThreshold;
+    private readonly int _consecutiveErrorsForFailureFeed;
 
-    public FailureStore(DirectoryInfo directory, TimeSpan failureResetThreshold)
+    public FailureStore(DirectoryInfo directory, int consecutiveErrorsForFailureFeed)
     {
         _directory = directory;
-        _failureResetThreshold = failureResetThreshold;
+        _consecutiveErrorsForFailureFeed = consecutiveErrorsForFailureFeed;
 
         if (!_directory.Exists)
             _directory.Create();
@@ -50,11 +50,16 @@ public sealed class FailureStore
         File.WriteAllText(Path.Combine(dir, "exception.log"), exception.ToString());
     }
 
-    public void ClearFailure(string feedUrl)
+    public void RecordSuccess(string feedUrl)
     {
         var statePath = Path.Combine(GetFeedDirectory(feedUrl), "state.json");
-        if (File.Exists(statePath))
-            File.Delete(statePath);
+        var existingState = ReadState(statePath);
+        if (existingState == null || existingState.ConsecutiveErrors == 0)
+            return;
+
+        var state = existingState with { ConsecutiveErrors = 0 };
+        var json = JsonSerializer.Serialize(state, JsonOptions);
+        File.WriteAllText(statePath, json);
     }
 
     public IReadOnlyList<Failure> GetCurrentFailures()
@@ -73,7 +78,7 @@ public sealed class FailureStore
             {
                 var json = File.ReadAllText(statePath);
                 var state = JsonSerializer.Deserialize<Failure>(json);
-                if (state != null)
+                if (state != null && state.ConsecutiveErrors > _consecutiveErrorsForFailureFeed)
                     failures.Add(state);
             }
             catch
@@ -104,21 +109,19 @@ public sealed class FailureStore
         var now = DateTimeOffset.UtcNow;
         var statePath = Path.Combine(dir, "state.json");
         var existingState = ReadState(statePath);
-        var isNewIncident = existingState == null || now - existingState.LastFailureUtc > _failureResetThreshold;
-        var firstFailureUtc = existingState?.FirstFailureUtc ?? now;
-        var failureCount = (existingState?.FailureCount ?? 0) + 1;
-        var id = isNewIncident ? Guid.NewGuid().ToString("N") : existingState!.Id;
+        var hasConsecutiveErrors = existingState is { ConsecutiveErrors: > 0 };
+        var id = hasConsecutiveErrors ? existingState!.Id : Guid.NewGuid().ToString("N");
         var state = new Failure(
             FeedUrl: failureInfo.FeedUrl,
-            SafeFeedId: failureInfo.FeedUrl.ToSafeFileName(),
-            FailureType: failureInfo.FailureType,
-            UserMessage: CreateUserMessage(failureInfo),
-            Message: failureInfo.Message,
-            FirstFailureUtc: firstFailureUtc,
-            LastFailureUtc: now,
-            FailureCount: failureCount,
-            HttpStatusCode: failureInfo.HttpStatusCode is { } statusCode ? (int)statusCode : null,
-            HttpReasonPhrase: failureInfo.HttpReasonPhrase,
+            Type: failureInfo.FailureType,
+            Message: CreateUserMessage(failureInfo),
+            Details: failureInfo.Message,
+            FirstErrorUtc: existingState?.FirstErrorUtc ?? now,
+            LastErrorUtc: now,
+            TotalErrors: (existingState?.TotalErrors ?? 0) + 1,
+            ConsecutiveErrors: (existingState?.ConsecutiveErrors ?? 0) + 1,
+            HttpStatus: failureInfo.HttpStatusCode is { } statusCode ? (int)statusCode : null,
+            HttpReason: failureInfo.HttpReasonPhrase,
             FinalUrl: failureInfo.FinalUrl,
             Redirects: failureInfo.Redirects,
             Id: id

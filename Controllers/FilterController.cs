@@ -183,7 +183,7 @@ public class FilterController : ControllerBase
             if (cachedRss != null)
             {
                 // Return the cached RSS document
-                _failureStore.ClearFailure(feedUrl);
+                _failureStore.RecordSuccess(feedUrl);
                 WriteDebugFilesInDevMode(originalRss, cachedRss);
                 _logger.LogInformation($"Returned cached RSS for feed {feedUrl} because nothing changed");
                 return Complete(Content(cachedRss, "application/rss+xml"), "cache-hit", StatusCodes.Status200OK);
@@ -196,7 +196,7 @@ public class FilterController : ControllerBase
                 var modifiedDocument = _processor.Process(originalDocument, rules, feedUrl);
                 var modifiedRss = modifiedDocument.ToString();
                 _cache.Set(feedUrl, hash, modifiedRss);
-                _failureStore.ClearFailure(feedUrl);
+                _failureStore.RecordSuccess(feedUrl);
                 WriteDebugFilesInDevMode(originalRss, modifiedRss);
                 return Complete(Content(modifiedRss, "application/rss+xml"), "processed", StatusCodes.Status200OK);
             }

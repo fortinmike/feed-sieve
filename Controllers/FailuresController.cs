@@ -26,14 +26,14 @@ public class FailuresController : ControllerBase
 
         var requestBaseUrl = $"{Request.Scheme}://{Request.Host}";
         var feedUrl = $"{requestBaseUrl}/failures";
-        var failures = _failureStore.GetCurrentFailures().OrderByDescending(failure => failure.LastFailureUtc).ToList();
+        var failures = _failureStore.GetCurrentFailures().OrderByDescending(failure => failure.LastErrorUtc).ToList();
 
         var feed = new SyndicationFeed(
             "Feed Sieve Failures",
             "Feeds currently failing in this Feed Sieve instance",
             new Uri(feedUrl),
             "feed-sieve:failures",
-            failures.FirstOrDefault()?.LastFailureUtc ?? DateTimeOffset.UtcNow
+            failures.FirstOrDefault()?.LastErrorUtc ?? DateTimeOffset.UtcNow
         );
 
         feed.Items = failures.Select(CreateItem).ToList();
@@ -54,16 +54,16 @@ public class FailuresController : ControllerBase
 
     private SyndicationItem CreateItem(Failure failure)
     {
-        var title = failure.HttpStatusCode is { } statusCode
+        var title = failure.HttpStatus is { } statusCode
             ? $"HTTP {statusCode}: {failure.FeedUrl}"
-            : $"{failure.FailureType}: {failure.FeedUrl}";
+            : $"{failure.Type}: {failure.FeedUrl}";
 
         var item = new SyndicationItem
         {
             Title = SyndicationContent.CreatePlaintextContent(title),
             Id = failure.Id,
-            PublishDate = failure.LastFailureUtc,
-            LastUpdatedTime = failure.LastFailureUtc,
+            PublishDate = failure.FirstErrorUtc,
+            LastUpdatedTime = failure.FirstErrorUtc,
             Summary = SyndicationContent.CreateHtmlContent(CreateSummaryHtml(failure))
         };
 
@@ -77,28 +77,28 @@ public class FailuresController : ControllerBase
     {
         var html = new StringBuilder();
 
-        AppendParagraph(html, $"<strong>{Encode("Summary")}</strong><br>{Encode(failure.UserMessage)}");
-        AppendParagraph(html, $"<strong>{Encode("Feed URL")}</strong><br>{CreateLinkOrCode(failure.FeedUrl)}");
-
-        if (failure.HttpStatusCode is { } statusCode)
+        AppendParagraph(html, CreateLinkOrCode(failure.FeedUrl));
+        if (
+            !string.IsNullOrWhiteSpace(failure.FinalUrl)
+            && !string.Equals(failure.FinalUrl, failure.FeedUrl, StringComparison.OrdinalIgnoreCase)
+        )
         {
-            var reason = failure.HttpReasonPhrase is { Length: > 0 } reasonPhrase ? $" {reasonPhrase}" : "";
-            AppendParagraph(html, $"<strong>{Encode("HTTP Status")}</strong><br>{(int)statusCode}{Encode(reason)}");
+            AppendParagraph(html, CreateLinkOrCode("-> " + failure.FinalUrl));
         }
 
-        AppendParagraph(html, $"<strong>{Encode("Reason")}</strong><br>{Encode(failure.Message)}");
-        AppendParagraph(
-            html,
-            $"<strong>{Encode("First failure")}</strong><br><code>{Encode(failure.FirstFailureUtc.ToString("O"))}</code>"
-        );
-        AppendParagraph(
-            html,
-            $"<strong>{Encode("Last failure")}</strong><br><code>{Encode(failure.LastFailureUtc.ToString("O"))}</code>"
-        );
-        AppendParagraph(html, $"<strong>{Encode("Failure count")}</strong><br>{failure.FailureCount}");
+        AppendParagraph(html, $"<strong>{Encode("Message")}</strong><br>{Encode(failure.Message)}");
 
-        if (!string.IsNullOrWhiteSpace(failure.FinalUrl))
-            AppendParagraph(html, $"<strong>{Encode("Final URL")}</strong><br>{CreateLinkOrCode(failure.FinalUrl)}");
+        AppendParagraph(html, $"<strong>{Encode("Details")}</strong><br>{Encode(failure.Details)}");
+        AppendParagraph(
+            html,
+            $"<strong>{Encode("First Error")}</strong><br><code>{Encode(failure.FirstErrorUtc.ToString("O"))}</code>"
+        );
+        AppendParagraph(
+            html,
+            $"<strong>{Encode("Last Error")}</strong><br><code>{Encode(failure.LastErrorUtc.ToString("O"))}</code>"
+        );
+        AppendParagraph(html, $"<strong>{Encode("Consecutive Errors")}</strong><br>{failure.ConsecutiveErrors}");
+        AppendParagraph(html, $"<strong>{Encode("Total Errors")}</strong><br>{failure.TotalErrors}");
 
         if (failure.Redirects is { Count: > 0 })
         {
