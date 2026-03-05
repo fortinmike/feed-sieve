@@ -68,18 +68,6 @@ public sealed class FailureStore
         return ReadState(statePath)?.DoNotUpdateBeforeUtc;
     }
 
-    public void SetDoNotUpdateBeforeUtc(string feedUrl, DateTimeOffset doNotUpdateBeforeUtc)
-    {
-        var statePath = GetStatePath(feedUrl);
-        var existingState = ReadState(statePath);
-        if (existingState == null)
-            return;
-
-        var updatedState = existingState with { DoNotUpdateBeforeUtc = doNotUpdateBeforeUtc };
-        var json = JsonSerializer.Serialize(updatedState, JsonOptions);
-        File.WriteAllText(statePath, json);
-    }
-
     public void ClearDoNotUpdateBeforeUtc(string feedUrl)
     {
         var statePath = GetStatePath(feedUrl);
@@ -153,7 +141,7 @@ public sealed class FailureStore
             HttpReason: failureInfo.HttpReasonPhrase,
             FinalUrl: failureInfo.FinalUrl,
             Redirects: failureInfo.Redirects,
-            DoNotUpdateBeforeUtc: existingState?.DoNotUpdateBeforeUtc,
+            DoNotUpdateBeforeUtc: failureInfo.DoNotUpdateBeforeUtc ?? existingState?.DoNotUpdateBeforeUtc,
             Id: id
         );
 

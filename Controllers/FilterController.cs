@@ -73,7 +73,10 @@ public class FilterController : ControllerBase
                 .GetRequiredSection("ReturnCachedFeedOnUpstreamFailure")
                 .Get<bool>();
 
-            if (_failureStore.GetDoNotUpdateBeforeUtc(feedUrl) is DateTimeOffset doNotUpdateBeforeUtc && doNotUpdateBeforeUtc > DateTimeOffset.UtcNow)
+            if (
+                _failureStore.GetDoNotUpdateBeforeUtc(feedUrl) is DateTimeOffset doNotUpdateBeforeUtc
+                && doNotUpdateBeforeUtc > DateTimeOffset.UtcNow
+            )
             {
                 _logger.LogWarning(
                     "Skipping upstream fetch for {FeedUrl} until {DoNotUpdateBeforeUtc} because upstream previously returned 429",
@@ -84,7 +87,11 @@ public class FilterController : ControllerBase
                 if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedResponse)
                     return Complete(cachedResponse, "rate-limited-skipped-cached", StatusCodes.Status200OK);
 
-                return Complete(StatusCode(StatusCodes.Status503ServiceUnavailable), "rate-limited-skipped", StatusCodes.Status503ServiceUnavailable);
+                return Complete(
+                    StatusCode(StatusCodes.Status503ServiceUnavailable),
+                    "rate-limited-skipped",
+                    StatusCodes.Status503ServiceUnavailable
+                );
             }
 
             // Fetch the RSS feed XML and get the XML
@@ -101,20 +108,32 @@ public class FilterController : ControllerBase
             }
             catch (UpstreamHttpStatusException ex)
             {
-                _failureStore.RecordFailure(ex.FailureInfo, ex);
-
+                // Handle HTTP 429 (Too Many Requests)
+                // We don't forward HTTP 429 to the client because in some cases
+                // it can throttle per host and we don't want it to backoff from
+                // fetching all feeds because they have the same feed-sieve host.
                 if (ex.FailureInfo.HttpStatusCode == HttpStatusCode.TooManyRequests)
                 {
                     var doNotUpdateBefore = GetDoNotUpdateBeforeUtc(ex.FailureInfo);
-                    _failureStore.SetDoNotUpdateBeforeUtc(feedUrl, doNotUpdateBefore);
+                    var failureInfo = ex.FailureInfo with { DoNotUpdateBeforeUtc = doNotUpdateBefore };
+                    _failureStore.RecordFailure(failureInfo, ex);
                     _logger.LogWarning(
                         "Upstream feed rate-limited {FeedUrl}; skipping updates until {DoNotUpdateBeforeUtc}",
                         feedUrl,
                         doNotUpdateBefore
                     );
 
-                    if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedRateLimitedResponse)
-                        return Complete(cachedRateLimitedResponse, "rate-limited-cache-fallback", StatusCodes.Status200OK);
+                    if (
+                        returnCachedFeedOnUpstreamFailure
+                        && CreateCachedResponse(feedUrl) is ContentResult cachedRateLimitedResponse
+                    )
+                    {
+                        return Complete(
+                            cachedRateLimitedResponse,
+                            "rate-limited-cache-fallback",
+                            StatusCodes.Status200OK
+                        );
+                    }
 
                     return Complete(
                         StatusCode(StatusCodes.Status503ServiceUnavailable),
@@ -123,16 +142,21 @@ public class FilterController : ControllerBase
                     );
                 }
 
+                // Handle other upstream errors
+
+                _failureStore.RecordFailure(ex.FailureInfo, ex);
                 _logger.LogWarning(
                     "Upstream feed returned HTTP {StatusCode} for {FeedUrl}",
                     (int?)ex.FailureInfo.HttpStatusCode,
                     feedUrl
                 );
+
                 if (returnCachedFeedOnUpstreamFailure && CreateCachedResponse(feedUrl) is ContentResult cachedResponse)
                 {
                     _logger.LogWarning("Returned cached RSS");
                     return Complete(cachedResponse, "upstream-http-cached", StatusCodes.Status200OK);
                 }
+
                 return Complete(
                     StatusCode(StatusCodes.Status502BadGateway),
                     "upstream-http",
