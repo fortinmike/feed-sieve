@@ -26,14 +26,14 @@ public class FailuresController : ControllerBase
 
         var requestBaseUrl = $"{Request.Scheme}://{Request.Host}";
         var feedUrl = $"{requestBaseUrl}/failures";
-        var failures = _failureStore.GetCurrentFailures().OrderByDescending(failure => failure.LastErrorUtc).ToList();
+        var failures = _failureStore.GetFailures().OrderByDescending(failure => failure.State.LastErrorUtc).ToList();
 
         var feed = new SyndicationFeed(
             "Feed Sieve Failures",
             "Feeds currently failing in this Feed Sieve instance",
             new Uri(feedUrl),
             "feed-sieve:failures",
-            failures.FirstOrDefault()?.LastErrorUtc ?? DateTimeOffset.UtcNow
+            failures.FirstOrDefault()?.State.LastErrorUtc ?? DateTimeOffset.UtcNow
         );
 
         feed.Items = failures.Select(CreateItem).ToList();
@@ -54,20 +54,20 @@ public class FailuresController : ControllerBase
 
     private SyndicationItem CreateItem(Failure failure)
     {
-        var title = failure.HttpStatus is { } statusCode
-            ? $"HTTP {statusCode}: {failure.FeedUrl}"
-            : $"{failure.Type}: {failure.FeedUrl}";
+        var title = failure.State.HttpStatus is { } statusCode
+            ? $"HTTP {statusCode}: {failure.State.FeedUrl}"
+            : $"{failure.State.Type}: {failure.State.FeedUrl}";
 
         var item = new SyndicationItem
         {
             Title = SyndicationContent.CreatePlaintextContent(title),
-            Id = failure.Id,
-            PublishDate = failure.FirstErrorUtc,
-            LastUpdatedTime = failure.FirstErrorUtc,
+            Id = failure.State.Id,
+            PublishDate = failure.State.FirstErrorUtc,
+            LastUpdatedTime = failure.State.FirstErrorUtc,
             Summary = SyndicationContent.CreateHtmlContent(CreateSummaryHtml(failure))
         };
 
-        if (Uri.TryCreate(failure.FeedUrl, UriKind.Absolute, out var feedUrl))
+        if (Uri.TryCreate(failure.State.FeedUrl, UriKind.Absolute, out var feedUrl))
             item.Links.Add(SyndicationLink.CreateAlternateLink(feedUrl));
 
         return item;
@@ -77,32 +77,32 @@ public class FailuresController : ControllerBase
     {
         var html = new StringBuilder();
 
-        AppendParagraph(html, CreateLinkOrCode(failure.FeedUrl));
+        AppendParagraph(html, CreateLinkOrCode(failure.State.FeedUrl));
         if (
-            !string.IsNullOrWhiteSpace(failure.FinalUrl)
-            && !string.Equals(failure.FinalUrl, failure.FeedUrl, StringComparison.OrdinalIgnoreCase)
+            !string.IsNullOrWhiteSpace(failure.State.FinalUrl)
+            && !string.Equals(failure.State.FinalUrl, failure.State.FeedUrl, StringComparison.OrdinalIgnoreCase)
         )
         {
-            AppendParagraph(html, CreateLinkOrCode("-> " + failure.FinalUrl));
+            AppendParagraph(html, CreateLinkOrCode("-> " + failure.State.FinalUrl));
         }
 
-        AppendParagraph(html, $"<strong>{Encode("Details")}</strong><br>{Encode(failure.Details)}");
+        AppendParagraph(html, $"<strong>{Encode("Details")}</strong><br>{Encode(failure.State.Details)}");
         AppendParagraph(
             html,
-            $"<strong>{Encode("First Error")}</strong><br><code>{Encode(failure.FirstErrorUtc.ToString("O"))}</code>"
+            $"<strong>{Encode("First Error")}</strong><br><code>{Encode(failure.State.FirstErrorUtc.ToString("O"))}</code>"
         );
         AppendParagraph(
             html,
-            $"<strong>{Encode("Last Error")}</strong><br><code>{Encode(failure.LastErrorUtc.ToString("O"))}</code>"
+            $"<strong>{Encode("Last Error")}</strong><br><code>{Encode(failure.State.LastErrorUtc.ToString("O"))}</code>"
         );
-        AppendParagraph(html, $"<strong>{Encode("Consecutive Errors")}</strong><br>{failure.ConsecutiveErrors}");
-        AppendParagraph(html, $"<strong>{Encode("Total Errors")}</strong><br>{failure.TotalErrors}");
+        AppendParagraph(html, $"<strong>{Encode("Consecutive Errors")}</strong><br>{failure.State.ConsecutiveErrors}");
+        AppendParagraph(html, $"<strong>{Encode("Total Errors")}</strong><br>{failure.State.TotalErrors}");
 
-        if (failure.Redirects is { Count: > 0 })
+        if (failure.State.Redirects is { Count: > 0 })
         {
             html.Append("<p><strong>Redirects</strong></p>");
             html.Append("<ul>");
-            foreach (var redirect in failure.Redirects)
+            foreach (var redirect in failure.State.Redirects)
             {
                 html.Append("<li>");
                 html.Append(WebUtility.HtmlEncode(redirect));
@@ -111,11 +111,11 @@ public class FailuresController : ControllerBase
             html.Append("</ul>");
         }
 
-        if (_failureStore.TryGetResponsePreview(failure) is string responsePreview)
+        if (!string.IsNullOrEmpty(failure.ResponseBodyData?.Content))
         {
             html.Append("<p><strong>Response Preview (first 10 lines)</strong></p>");
             html.Append("<pre><code>");
-            html.Append(Encode(responsePreview));
+            html.Append(Encode(failure.ResponseBodyData!.Content));
             html.Append("</code></pre>");
         }
 

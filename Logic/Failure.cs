@@ -1,15 +1,14 @@
 public sealed record Failure(
-    string Id,
-    string FeedUrl,
-    string Type,
-    string Details,
-    DateTimeOffset FirstErrorUtc,
-    DateTimeOffset LastErrorUtc,
-    int TotalErrors,
-    int ConsecutiveErrors,
-    int? HttpStatus = null,
-    string? HttpReason = null,
-    string? FinalUrl = null,
-    DateTimeOffset? DoNotUpdateBeforeUtc = null,
-    IReadOnlyList<string>? Redirects = null
+    FailureState State,
+    string? Headers,
+    FailureResponseBodyData? ResponseBodyData,
+    string? ExceptionLog
 );
+
+public enum FailureResponseBodyKind
+{
+    Full,
+    Preview
+}
+
+public sealed record FailureResponseBodyData(FailureResponseBodyKind Kind, string Content);

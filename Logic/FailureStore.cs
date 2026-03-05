@@ -16,21 +16,23 @@ public sealed class FailureStore
             _directory.Create();
     }
 
-    public void RecordFailure(UpstreamFailureInfo failureInfo)
-    {
-        var dir = GetFeedDirectory(failureInfo.FeedUrl);
-        Directory.CreateDirectory(dir);
-        WriteState(dir, failureInfo);
-        WriteResponseArtifacts(dir, failureInfo);
-    }
+    #region Specific Recording Methods
 
-    public void RecordFailure(UpstreamFailureInfo failureInfo, Exception exception)
+    public void RecordFailure(UpstreamFailureInfo failureInfo, Exception? exception = null)
     {
-        var dir = GetFeedDirectory(failureInfo.FeedUrl);
-        Directory.CreateDirectory(dir);
-        WriteState(dir, failureInfo);
-        WriteResponseArtifacts(dir, failureInfo);
-        File.WriteAllText(Path.Combine(dir, "exception.log"), exception.ToString());
+        var directory = GetFeedDirectory(failureInfo.FeedUrl);
+        var existingState = LoadState(GetStatePath(directory));
+        var state = CreateFailureState(existingState, failureInfo);
+        var failure = new Failure(
+            State: state,
+            Headers: FormatHeaders(failureInfo.ResponseHeaders),
+            ResponseBodyData: new FailureResponseBodyData(
+                FailureResponseBodyKind.Full,
+                failureInfo.ResponseBody ?? string.Empty
+            ),
+            ExceptionLog: exception?.ToString()
+        );
+        SaveFailure(directory, failure);
     }
 
     public void RecordParseFailure(string feedUrl, string feedXml, XmlException exception)
@@ -43,93 +45,25 @@ public sealed class FailureStore
             ResponseBody: feedXml
         );
 
-        var dir = GetFeedDirectory(feedUrl);
-        Directory.CreateDirectory(dir);
-        WriteState(dir, failureInfo);
-        WriteResponseArtifacts(dir, failureInfo);
-        File.WriteAllText(Path.Combine(dir, "exception.log"), exception.ToString());
+        RecordFailure(failureInfo, exception);
     }
 
     public void RecordSuccess(string feedUrl)
     {
-        SetFailure(feedUrl, failure => failure with { ConsecutiveErrors = 0 });
+        SetFailureState(feedUrl, failure => failure with { ConsecutiveErrors = 0 });
     }
 
-    public Failure? GetFailure(string feedUrl)
-    {
-        var statePath = GetStatePath(feedUrl);
-        return ReadState(statePath);
-    }
-
-    public void SetFailure(string feedUrl, Func<Failure, Failure> update)
-    {
-        var statePath = GetStatePath(feedUrl);
-        var existingState = ReadState(statePath);
-        if (existingState == null)
-            return;
-
-        var updatedState = update(existingState);
-        if (updatedState == existingState)
-            return;
-
-        var json = JsonSerializer.Serialize(updatedState, JsonOptions);
-        File.WriteAllText(statePath, json);
-    }
-
-    public IReadOnlyList<Failure> GetCurrentFailures()
-    {
-        if (!_directory.Exists)
-            return [];
-
-        var failures = new List<Failure>();
-        foreach (var dir in Directory.EnumerateDirectories(_directory.FullName))
-        {
-            var statePath = Path.Combine(dir, "state.json");
-            if (!File.Exists(statePath))
-                continue;
-
-            try
-            {
-                var json = File.ReadAllText(statePath);
-                var state = JsonSerializer.Deserialize<Failure>(json);
-                if (state != null && state.ConsecutiveErrors > _consecutiveErrorsForFailureFeed)
-                    failures.Add(state);
-            }
-            catch
-            {
-                // Ignore malformed state files and continue emitting the feed
-            }
-        }
-
-        return failures;
-    }
-
-    public string? TryGetResponsePreview(Failure failure)
-    {
-        var responsePath = Path.Combine(GetFeedDirectory(failure.FeedUrl), "response.xml");
-        if (!File.Exists(responsePath))
-            return null;
-
-        return CreateResponsePreview(File.ReadAllText(responsePath));
-    }
-
-    private string GetFeedDirectory(string feedUrl)
-    {
-        return Path.Combine(_directory.FullName, feedUrl.ToSafeFileName());
-    }
-
-    private void WriteState(string dir, UpstreamFailureInfo failureInfo)
+    private static FailureState CreateFailureState(FailureState? existingState, UpstreamFailureInfo failureInfo)
     {
         var now = DateTimeOffset.UtcNow;
-        var statePath = Path.Combine(dir, "state.json");
-        var existingState = ReadState(statePath);
         var hasConsecutiveErrors = existingState is { ConsecutiveErrors: > 0 };
+        var firstErrorUtc = hasConsecutiveErrors ? existingState!.FirstErrorUtc : now;
         var id = hasConsecutiveErrors ? existingState!.Id : Guid.NewGuid().ToString("N");
-        var state = new Failure(
+        return new FailureState(
             FeedUrl: failureInfo.FeedUrl,
             Type: failureInfo.FailureType,
             Details: failureInfo.Message,
-            FirstErrorUtc: existingState?.FirstErrorUtc ?? now,
+            FirstErrorUtc: firstErrorUtc,
             LastErrorUtc: now,
             TotalErrors: (existingState?.TotalErrors ?? 0) + 1,
             ConsecutiveErrors: (existingState?.ConsecutiveErrors ?? 0) + 1,
@@ -140,12 +74,81 @@ public sealed class FailureStore
             DoNotUpdateBeforeUtc: failureInfo.DoNotUpdateBeforeUtc ?? existingState?.DoNotUpdateBeforeUtc,
             Id: id
         );
-
-        var json = JsonSerializer.Serialize(state, JsonOptions);
-        File.WriteAllText(statePath, json);
     }
 
-    private static Failure? ReadState(string statePath)
+    private static string FormatHeaders(IReadOnlyList<string>? responseHeaders)
+    {
+        return responseHeaders == null ? string.Empty : string.Join(Environment.NewLine, responseHeaders);
+    }
+
+    #endregion
+
+    #region State Accessors
+
+    public FailureState? GetFailureState(string feedUrl)
+    {
+        return LoadState(GetStatePath(GetFeedDirectory(feedUrl)));
+    }
+
+    public void SetFailureState(string feedUrl, Func<FailureState, FailureState> update)
+    {
+        var directory = GetFeedDirectory(feedUrl);
+        var statePath = GetStatePath(directory);
+        var existingState = LoadState(statePath);
+        if (existingState == null)
+            return;
+
+        var updatedState = update(existingState);
+        if (updatedState == existingState)
+            return;
+
+        SaveState(statePath, updatedState);
+    }
+
+    public IReadOnlyList<Failure> GetFailures()
+    {
+        if (!_directory.Exists)
+            return [];
+
+        var failures = new List<Failure>();
+        foreach (var dir in Directory.EnumerateDirectories(_directory.FullName))
+        {
+            var failure = LoadFailure(dir);
+            if (failure != null && failure.State.ConsecutiveErrors > _consecutiveErrorsForFailureFeed)
+                failures.Add(failure);
+        }
+
+        return failures;
+    }
+
+    #endregion
+
+    #region Persistence
+
+    private Failure? LoadFailure(string directory)
+    {
+        var state = LoadState(GetStatePath(directory));
+        if (state == null)
+            return null;
+
+        return new Failure(
+            State: state,
+            Headers: LoadTextOrNull(Path.Combine(directory, "headers.txt")),
+            ResponseBodyData: LoadResponseBodyPreview(Path.Combine(directory, "response.xml")),
+            ExceptionLog: LoadTextOrNull(Path.Combine(directory, "exception.log"))
+        );
+    }
+
+    private void SaveFailure(string directory, Failure failure)
+    {
+        Directory.CreateDirectory(directory);
+        SaveState(GetStatePath(directory), failure.State);
+        SaveText(Path.Combine(directory, "headers.txt"), failure.Headers);
+        SaveResponseBody(Path.Combine(directory, "response.xml"), failure.ResponseBodyData);
+        SaveText(Path.Combine(directory, "exception.log"), failure.ExceptionLog);
+    }
+
+    private static FailureState? LoadState(string statePath)
     {
         if (!File.Exists(statePath))
             return null;
@@ -153,7 +156,7 @@ public sealed class FailureStore
         try
         {
             var json = File.ReadAllText(statePath);
-            return JsonSerializer.Deserialize<Failure>(json);
+            return JsonSerializer.Deserialize<FailureState>(json);
         }
         catch
         {
@@ -161,17 +164,46 @@ public sealed class FailureStore
         }
     }
 
-    private string GetStatePath(string feedUrl)
+    private static string? LoadTextOrNull(string path)
     {
-        return Path.Combine(GetFeedDirectory(feedUrl), "state.json");
+        if (!File.Exists(path))
+            return null;
+
+        try
+        {
+            return File.ReadAllText(path);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
-    private static string CreateResponsePreview(string responseText)
+    private static FailureResponseBodyData? LoadResponseBodyPreview(string path)
     {
-        using var reader = new StringReader(responseText);
+        if (!File.Exists(path))
+            return null;
+
+        try
+        {
+            using var reader = File.OpenText(path);
+            var preview = ReadPreview(reader);
+            if (preview == null)
+                return null;
+
+            return new FailureResponseBodyData(FailureResponseBodyKind.Preview, preview);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string? ReadPreview(TextReader reader, int maxLines = 10)
+    {
         var previewLines = new List<string>();
 
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < maxLines; i++)
         {
             var line = reader.ReadLine();
             if (line == null)
@@ -180,17 +212,40 @@ public sealed class FailureStore
             previewLines.Add(line);
         }
 
-        return string.Join(Environment.NewLine, previewLines);
+        return previewLines.Count == 0 ? null : string.Join(Environment.NewLine, previewLines);
     }
 
-    private static void WriteResponseArtifacts(string dir, UpstreamFailureInfo failureInfo)
+    private static void SaveState(string statePath, FailureState state)
     {
-        var headers =
-            failureInfo.ResponseHeaders == null
-                ? string.Empty
-                : string.Join(Environment.NewLine, failureInfo.ResponseHeaders);
-
-        File.WriteAllText(Path.Combine(dir, "headers.txt"), headers);
-        File.WriteAllText(Path.Combine(dir, "response.xml"), failureInfo.ResponseBody ?? string.Empty);
+        var json = JsonSerializer.Serialize(state, JsonOptions);
+        File.WriteAllText(statePath, json);
     }
+
+    private static void SaveText(string path, string? content)
+    {
+        if (content == null)
+            return;
+
+        File.WriteAllText(path, content);
+    }
+
+    private static void SaveResponseBody(string path, FailureResponseBodyData? responseBodyData)
+    {
+        if (responseBodyData == null || responseBodyData.Kind != FailureResponseBodyKind.Full)
+            return;
+
+        File.WriteAllText(path, responseBodyData.Content);
+    }
+
+    private string GetFeedDirectory(string feedUrl)
+    {
+        return Path.Combine(_directory.FullName, feedUrl.ToSafeFileName());
+    }
+
+    private static string GetStatePath(string directory)
+    {
+        return Path.Combine(directory, "state.json");
+    }
+
+    #endregion
 }

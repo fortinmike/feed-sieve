@@ -74,7 +74,7 @@ public class FilterController : ControllerBase
                 .Get<bool>();
 
             if (
-                _failureStore.GetFailure(feedUrl)?.DoNotUpdateBeforeUtc is DateTimeOffset doNotUpdateBeforeUtc
+                _failureStore.GetFailureState(feedUrl)?.DoNotUpdateBeforeUtc is DateTimeOffset doNotUpdateBeforeUtc
                 && doNotUpdateBeforeUtc > DateTimeOffset.UtcNow
             )
             {
@@ -99,7 +99,7 @@ public class FilterController : ControllerBase
             try
             {
                 originalRss = await _upstreamFeedClient.GetStringAsync(feedUrl, HttpContext.RequestAborted);
-                _failureStore.SetFailure(feedUrl, failure => failure with { DoNotUpdateBeforeUtc = null });
+                _failureStore.SetFailureState(feedUrl, failure => failure with { DoNotUpdateBeforeUtc = null });
             }
             catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
             {
