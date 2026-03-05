@@ -99,7 +99,7 @@ public class FilterController : ControllerBase
             try
             {
                 originalRss = await _upstreamFeedClient.GetStringAsync(feedUrl, HttpContext.RequestAborted);
-                _failureStore.ClearDoNotUpdateBeforeUtc(feedUrl);
+                _failureStore.SetFailure(feedUrl, failure => failure with { DoNotUpdateBeforeUtc = null });
             }
             catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
             {

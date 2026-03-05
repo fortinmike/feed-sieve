@@ -52,14 +52,7 @@ public sealed class FailureStore
 
     public void RecordSuccess(string feedUrl)
     {
-        var statePath = GetStatePath(feedUrl);
-        var existingState = ReadState(statePath);
-        if (existingState == null || existingState.ConsecutiveErrors == 0)
-            return;
-
-        var state = existingState with { ConsecutiveErrors = 0 };
-        var json = JsonSerializer.Serialize(state, JsonOptions);
-        File.WriteAllText(statePath, json);
+        SetFailure(feedUrl, failure => failure with { ConsecutiveErrors = 0 });
     }
 
     public Failure? GetFailure(string feedUrl)
@@ -68,14 +61,17 @@ public sealed class FailureStore
         return ReadState(statePath);
     }
 
-    public void ClearDoNotUpdateBeforeUtc(string feedUrl)
+    public void SetFailure(string feedUrl, Func<Failure, Failure> update)
     {
         var statePath = GetStatePath(feedUrl);
         var existingState = ReadState(statePath);
-        if (existingState?.DoNotUpdateBeforeUtc == null)
+        if (existingState == null)
             return;
 
-        var updatedState = existingState with { DoNotUpdateBeforeUtc = null };
+        var updatedState = update(existingState);
+        if (updatedState == existingState)
+            return;
+
         var json = JsonSerializer.Serialize(updatedState, JsonOptions);
         File.WriteAllText(statePath, json);
     }
@@ -189,9 +185,10 @@ public sealed class FailureStore
 
     private static void WriteResponseArtifacts(string dir, UpstreamFailureInfo failureInfo)
     {
-        var headers = failureInfo.ResponseHeaders == null
-            ? string.Empty
-            : string.Join(Environment.NewLine, failureInfo.ResponseHeaders);
+        var headers =
+            failureInfo.ResponseHeaders == null
+                ? string.Empty
+                : string.Join(Environment.NewLine, failureInfo.ResponseHeaders);
 
         File.WriteAllText(Path.Combine(dir, "headers.txt"), headers);
         File.WriteAllText(Path.Combine(dir, "response.xml"), failureInfo.ResponseBody ?? string.Empty);
