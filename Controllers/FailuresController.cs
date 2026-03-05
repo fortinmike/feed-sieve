@@ -113,11 +113,11 @@ public class FailuresController : ControllerBase
             html.Append("</ul>");
         }
 
-        if (_failureStore.TryGetFeedXmlPreview(failure) is string feedXmlPreview)
+        if (_failureStore.TryGetResponsePreview(failure) is string responsePreview)
         {
-            html.Append("<p><strong>Feed Preview (first 10 lines)</strong></p>");
+            html.Append("<p><strong>Response Preview (first 10 lines)</strong></p>");
             html.Append("<pre><code>");
-            html.Append(Encode(feedXmlPreview));
+            html.Append(Encode(responsePreview));
             html.Append("</code></pre>");
         }
 

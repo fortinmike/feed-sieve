@@ -9,7 +9,7 @@ public sealed record UpstreamFailureInfo(
     string? HttpReasonPhrase = null,
     IReadOnlyList<string>? Redirects = null,
     IReadOnlyList<string>? ResponseHeaders = null,
-    string? ResponseBodyPreview = null
+    string? ResponseBody = null
 )
 {
     public static UpstreamFailureInfo FromException(string feedUrl, Exception exception)

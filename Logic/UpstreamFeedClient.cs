@@ -36,9 +36,6 @@ public sealed class UpstreamFeedClient
         foreach (var header in response.Content.Headers)
             headers.Add($"{header.Key}: {string.Join(", ", header.Value)}");
 
-        var responseBodyPreview =
-            responseBody.Length > 2048 ? responseBody[..2048] + Environment.NewLine + "... (truncated)" : responseBody;
-
         return new UpstreamFailureInfo(
             FeedUrl: feedUrl,
             FailureType: "HttpStatus",
@@ -48,7 +45,7 @@ public sealed class UpstreamFeedClient
             HttpReasonPhrase: response.ReasonPhrase,
             Redirects: redirects,
             ResponseHeaders: headers,
-            ResponseBodyPreview: responseBodyPreview
+            ResponseBody: responseBody
         );
     }
 

@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using System.Xml;
 
@@ -22,7 +21,7 @@ public sealed class FailureStore
         var dir = GetFeedDirectory(failureInfo.FeedUrl);
         Directory.CreateDirectory(dir);
         WriteState(dir, failureInfo);
-        WriteInfo(dir, failureInfo);
+        WriteResponseArtifacts(dir, failureInfo);
     }
 
     public void RecordFailure(UpstreamFailureInfo failureInfo, Exception exception)
@@ -30,7 +29,7 @@ public sealed class FailureStore
         var dir = GetFeedDirectory(failureInfo.FeedUrl);
         Directory.CreateDirectory(dir);
         WriteState(dir, failureInfo);
-        WriteInfo(dir, failureInfo);
+        WriteResponseArtifacts(dir, failureInfo);
         File.WriteAllText(Path.Combine(dir, "exception.log"), exception.ToString());
     }
 
@@ -39,14 +38,15 @@ public sealed class FailureStore
         var failureInfo = new UpstreamFailureInfo(
             FeedUrl: feedUrl,
             FailureType: "XmlParse",
-            Message: $"Invalid XML at line {exception.LineNumber}, position {exception.LinePosition}"
+            Message: $"Invalid XML at line {exception.LineNumber}, position {exception.LinePosition}",
+            ResponseHeaders: [],
+            ResponseBody: feedXml
         );
 
         var dir = GetFeedDirectory(feedUrl);
         Directory.CreateDirectory(dir);
         WriteState(dir, failureInfo);
-        WriteInfo(dir, failureInfo);
-        File.WriteAllText(Path.Combine(dir, "feed.xml"), feedXml);
+        WriteResponseArtifacts(dir, failureInfo);
         File.WriteAllText(Path.Combine(dir, "exception.log"), exception.ToString());
     }
 
@@ -90,13 +90,13 @@ public sealed class FailureStore
         return failures;
     }
 
-    public string? TryGetFeedXmlPreview(Failure failure)
+    public string? TryGetResponsePreview(Failure failure)
     {
-        var feedXmlPath = Path.Combine(GetFeedDirectory(failure.FeedUrl), "feed.xml");
-        if (!File.Exists(feedXmlPath))
+        var responsePath = Path.Combine(GetFeedDirectory(failure.FeedUrl), "response.xml");
+        if (!File.Exists(responsePath))
             return null;
 
-        return CreateFeedXmlPreview(File.ReadAllText(feedXmlPath));
+        return CreateResponsePreview(File.ReadAllText(responsePath));
     }
 
     private string GetFeedDirectory(string feedUrl)
@@ -147,9 +147,9 @@ public sealed class FailureStore
         }
     }
 
-    private static string CreateFeedXmlPreview(string feedXml)
+    private static string CreateResponsePreview(string responseText)
     {
-        using var reader = new StringReader(feedXml);
+        using var reader = new StringReader(responseText);
         var previewLines = new List<string>();
 
         for (var i = 0; i < 10; i++)
@@ -164,43 +164,14 @@ public sealed class FailureStore
         return string.Join(Environment.NewLine, previewLines);
     }
 
-    private static void WriteInfo(string dir, UpstreamFailureInfo failureInfo)
+    private static void WriteResponseArtifacts(string dir, UpstreamFailureInfo failureInfo)
     {
-        var info = new StringBuilder();
-        info.AppendLine($"Feed URL: {failureInfo.FeedUrl}");
-        info.AppendLine($"Failure: {failureInfo.FailureType}");
-        info.AppendLine($"Message: {failureInfo.Message}");
+        var headers = failureInfo.ResponseHeaders == null
+            ? string.Empty
+            : string.Join(Environment.NewLine, failureInfo.ResponseHeaders);
 
-        if (failureInfo.FinalUrl != null)
-            info.AppendLine($"Final URL: {failureInfo.FinalUrl}");
-
-        if (failureInfo.HttpStatusCode is { } statusCode)
-            info.AppendLine($"HTTP Status: {(int)statusCode} {failureInfo.HttpReasonPhrase ?? statusCode.ToString()}");
-
-        if (failureInfo.Redirects is { Count: > 0 })
-        {
-            info.AppendLine();
-            info.AppendLine("Redirects:");
-            foreach (var redirect in failureInfo.Redirects)
-                info.AppendLine(redirect);
-        }
-
-        if (failureInfo.ResponseHeaders is { Count: > 0 })
-        {
-            info.AppendLine();
-            info.AppendLine("Response headers:");
-            foreach (var header in failureInfo.ResponseHeaders)
-                info.AppendLine(header);
-        }
-
-        if (!string.IsNullOrEmpty(failureInfo.ResponseBodyPreview))
-        {
-            info.AppendLine();
-            info.AppendLine("Response body preview:");
-            info.AppendLine(failureInfo.ResponseBodyPreview);
-        }
-
-        File.WriteAllText(Path.Combine(dir, "info.txt"), info.ToString());
+        File.WriteAllText(Path.Combine(dir, "headers.txt"), headers);
+        File.WriteAllText(Path.Combine(dir, "response.xml"), failureInfo.ResponseBody ?? string.Empty);
     }
 
     private static string CreateUserMessage(UpstreamFailureInfo failureInfo)
