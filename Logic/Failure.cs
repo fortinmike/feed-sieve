@@ -11,5 +11,6 @@ public sealed record Failure(
     int? HttpStatus = null,
     string? HttpReason = null,
     string? FinalUrl = null,
+    DateTimeOffset? DoNotUpdateBeforeUtc = null,
     IReadOnlyList<string>? Redirects = null
 );

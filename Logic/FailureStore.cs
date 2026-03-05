@@ -52,13 +52,43 @@ public sealed class FailureStore
 
     public void RecordSuccess(string feedUrl)
     {
-        var statePath = Path.Combine(GetFeedDirectory(feedUrl), "state.json");
+        var statePath = GetStatePath(feedUrl);
         var existingState = ReadState(statePath);
         if (existingState == null || existingState.ConsecutiveErrors == 0)
             return;
 
         var state = existingState with { ConsecutiveErrors = 0 };
         var json = JsonSerializer.Serialize(state, JsonOptions);
+        File.WriteAllText(statePath, json);
+    }
+
+    public DateTimeOffset? GetDoNotUpdateBeforeUtc(string feedUrl)
+    {
+        var statePath = GetStatePath(feedUrl);
+        return ReadState(statePath)?.DoNotUpdateBeforeUtc;
+    }
+
+    public void SetDoNotUpdateBeforeUtc(string feedUrl, DateTimeOffset doNotUpdateBeforeUtc)
+    {
+        var statePath = GetStatePath(feedUrl);
+        var existingState = ReadState(statePath);
+        if (existingState == null)
+            return;
+
+        var updatedState = existingState with { DoNotUpdateBeforeUtc = doNotUpdateBeforeUtc };
+        var json = JsonSerializer.Serialize(updatedState, JsonOptions);
+        File.WriteAllText(statePath, json);
+    }
+
+    public void ClearDoNotUpdateBeforeUtc(string feedUrl)
+    {
+        var statePath = GetStatePath(feedUrl);
+        var existingState = ReadState(statePath);
+        if (existingState?.DoNotUpdateBeforeUtc == null)
+            return;
+
+        var updatedState = existingState with { DoNotUpdateBeforeUtc = null };
+        var json = JsonSerializer.Serialize(updatedState, JsonOptions);
         File.WriteAllText(statePath, json);
     }
 
@@ -124,6 +154,7 @@ public sealed class FailureStore
             HttpReason: failureInfo.HttpReasonPhrase,
             FinalUrl: failureInfo.FinalUrl,
             Redirects: failureInfo.Redirects,
+            DoNotUpdateBeforeUtc: existingState?.DoNotUpdateBeforeUtc,
             Id: id
         );
 
@@ -145,6 +176,11 @@ public sealed class FailureStore
         {
             return null;
         }
+    }
+
+    private string GetStatePath(string feedUrl)
+    {
+        return Path.Combine(GetFeedDirectory(feedUrl), "state.json");
     }
 
     private static string CreateResponsePreview(string responseText)

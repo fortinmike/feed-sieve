@@ -7,14 +7,4 @@ public class NullCache : ICache
     public void Set(string key, string hash, string value)
     {
     }
-
-    public DateTimeOffset? GetDoNotUpdateBeforeUtc(string key) => null;
-
-    public void SetDoNotUpdateBeforeUtc(string key, DateTimeOffset doNotUpdateBeforeUtc)
-    {
-    }
-
-    public void ClearDoNotUpdateBeforeUtc(string key)
-    {
-    }
 }

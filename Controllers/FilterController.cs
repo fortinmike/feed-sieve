@@ -73,7 +73,7 @@ public class FilterController : ControllerBase
                 .GetRequiredSection("ReturnCachedFeedOnUpstreamFailure")
                 .Get<bool>();
 
-            if (_cache.GetDoNotUpdateBeforeUtc(feedUrl) is DateTimeOffset doNotUpdateBeforeUtc && doNotUpdateBeforeUtc > DateTimeOffset.UtcNow)
+            if (_failureStore.GetDoNotUpdateBeforeUtc(feedUrl) is DateTimeOffset doNotUpdateBeforeUtc && doNotUpdateBeforeUtc > DateTimeOffset.UtcNow)
             {
                 _logger.LogWarning(
                     "Skipping upstream fetch for {FeedUrl} until {DoNotUpdateBeforeUtc} because upstream previously returned 429",
@@ -92,7 +92,7 @@ public class FilterController : ControllerBase
             try
             {
                 originalRss = await _upstreamFeedClient.GetStringAsync(feedUrl, HttpContext.RequestAborted);
-                _cache.ClearDoNotUpdateBeforeUtc(feedUrl);
+                _failureStore.ClearDoNotUpdateBeforeUtc(feedUrl);
             }
             catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
             {
@@ -106,7 +106,7 @@ public class FilterController : ControllerBase
                 if (ex.FailureInfo.HttpStatusCode == HttpStatusCode.TooManyRequests)
                 {
                     var doNotUpdateBefore = GetDoNotUpdateBeforeUtc(ex.FailureInfo);
-                    _cache.SetDoNotUpdateBeforeUtc(feedUrl, doNotUpdateBefore);
+                    _failureStore.SetDoNotUpdateBeforeUtc(feedUrl, doNotUpdateBefore);
                     _logger.LogWarning(
                         "Upstream feed rate-limited {FeedUrl}; skipping updates until {DoNotUpdateBeforeUtc}",
                         feedUrl,

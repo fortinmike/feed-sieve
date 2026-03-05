@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 public class Cache : ICache
 {
     private readonly DirectoryInfo _directory;
@@ -50,37 +48,6 @@ public class Cache : ICache
         File.WriteAllText(hashFile, hash);
     }
 
-    public DateTimeOffset? GetDoNotUpdateBeforeUtc(string key)
-    {
-        var stateFile = GetStateFile(key);
-
-        if (!File.Exists(stateFile))
-            return null;
-
-        var state = JsonSerializer.Deserialize<CacheState>(File.ReadAllText(stateFile));
-        return state?.DoNotUpdateBeforeUtc;
-    }
-
-    public void SetDoNotUpdateBeforeUtc(string key, DateTimeOffset doNotUpdateBeforeUtc)
-    {
-        var subDir = GetSubDirectory(key);
-        var stateFile = GetStateFile(key);
-
-        if (!subDir.Exists)
-            subDir.Create();
-
-        var json = JsonSerializer.Serialize(new CacheState(doNotUpdateBeforeUtc));
-        File.WriteAllText(stateFile, json);
-    }
-
-    public void ClearDoNotUpdateBeforeUtc(string key)
-    {
-        var stateFile = GetStateFile(key);
-
-        if (File.Exists(stateFile))
-            File.Delete(stateFile);
-    }
-
     private DirectoryInfo GetSubDirectory(string key)
     {
         var safeName = key.ToSafeFileName();
@@ -90,8 +57,4 @@ public class Cache : ICache
     private string GetValueFile(string key) => Path.Combine(GetSubDirectory(key).FullName, "value.txt");
 
     private string GetHashFile(string key) => Path.Combine(GetSubDirectory(key).FullName, "hash.txt");
-
-    private string GetStateFile(string key) => Path.Combine(GetSubDirectory(key).FullName, "state.json");
-
-    private sealed record CacheState(DateTimeOffset DoNotUpdateBeforeUtc);
 }
