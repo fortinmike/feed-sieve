@@ -144,7 +144,6 @@ public sealed class FailureStore
         var state = new Failure(
             FeedUrl: failureInfo.FeedUrl,
             Type: failureInfo.FailureType,
-            Message: CreateUserMessage(failureInfo),
             Details: failureInfo.Message,
             FirstErrorUtc: existingState?.FirstErrorUtc ?? now,
             LastErrorUtc: now,
@@ -208,30 +207,5 @@ public sealed class FailureStore
 
         File.WriteAllText(Path.Combine(dir, "headers.txt"), headers);
         File.WriteAllText(Path.Combine(dir, "response.xml"), failureInfo.ResponseBody ?? string.Empty);
-    }
-
-    private static string CreateUserMessage(UpstreamFailureInfo failureInfo)
-    {
-        if (failureInfo.FailureType == "XmlParse")
-            return "The upstream feed returned invalid XML";
-
-        if (failureInfo.HttpStatusCode is { } statusCode)
-        {
-            return statusCode switch
-            {
-                System.Net.HttpStatusCode.Forbidden => "The upstream server denied access to the feed",
-                System.Net.HttpStatusCode.NotFound => "The upstream feed URL was not found",
-                System.Net.HttpStatusCode.Unauthorized => "The upstream feed requires authentication",
-                _ => $"The upstream server returned HTTP {(int)statusCode}"
-            };
-        }
-
-        if (
-            failureInfo.FailureType.Contains(nameof(OperationCanceledException), StringComparison.Ordinal)
-            || failureInfo.FailureType.Contains(nameof(TaskCanceledException), StringComparison.Ordinal)
-        )
-            return "The upstream feed request timed out";
-
-        return "The upstream feed could not be fetched";
     }
 }

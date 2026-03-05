@@ -86,8 +86,6 @@ public class FailuresController : ControllerBase
             AppendParagraph(html, CreateLinkOrCode("-> " + failure.FinalUrl));
         }
 
-        AppendParagraph(html, $"<strong>{Encode("Message")}</strong><br>{Encode(failure.Message)}");
-
         AppendParagraph(html, $"<strong>{Encode("Details")}</strong><br>{Encode(failure.Details)}");
         AppendParagraph(
             html,
