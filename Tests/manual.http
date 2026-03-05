@@ -5,4 +5,8 @@ GET {{host}}/filter?url=https://eclecticlight.co/category/macs/feed/&secret={{se
 
 ###
 
+GET {{host}}/filter?url=https://nonexistentsite.com/feed/&secret={{secret}}
+
+###
+
 GET {{host}}/failures?secret={{secret}}
