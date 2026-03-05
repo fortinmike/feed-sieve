@@ -18,10 +18,9 @@ Dictionary<string, string?> BuildEnvConfigOverrides()
             overrides[configKey] = value;
     }
 
-    AddOverride("Auth:Username", "FEED_SIEVE_AUTH_USERNAME");
-    AddOverride("Auth:Password", "FEED_SIEVE_AUTH_PASSWORD");
-    AddOverride("Secret", "FEED_SIEVE_SECRET");
-    AddOverride("Auth:Secret", "FEED_SIEVE_SECRET");
+    AddOverride("Auth:Username", "AUTH_USERNAME");
+    AddOverride("Auth:Password", "AUTH_PASSWORD");
+    AddOverride("Secret", "SECRET");
 
     return overrides;
 }
