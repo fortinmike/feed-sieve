@@ -74,7 +74,7 @@ public class FilterController : ControllerBase
                 .Get<bool>();
 
             if (
-                _failureStore.GetDoNotUpdateBeforeUtc(feedUrl) is DateTimeOffset doNotUpdateBeforeUtc
+                _failureStore.GetFailure(feedUrl)?.DoNotUpdateBeforeUtc is DateTimeOffset doNotUpdateBeforeUtc
                 && doNotUpdateBeforeUtc > DateTimeOffset.UtcNow
             )
             {

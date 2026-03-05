@@ -62,10 +62,10 @@ public sealed class FailureStore
         File.WriteAllText(statePath, json);
     }
 
-    public DateTimeOffset? GetDoNotUpdateBeforeUtc(string feedUrl)
+    public Failure? GetFailure(string feedUrl)
     {
         var statePath = GetStatePath(feedUrl);
-        return ReadState(statePath)?.DoNotUpdateBeforeUtc;
+        return ReadState(statePath);
     }
 
     public void ClearDoNotUpdateBeforeUtc(string feedUrl)
