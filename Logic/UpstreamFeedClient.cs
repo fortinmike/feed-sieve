@@ -19,7 +19,9 @@ public sealed class UpstreamFeedClient
             return await response.Content.ReadAsStringAsync(cancellationToken);
 
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
-        throw new UpstreamHttpStatusException(CreateFailureInfo(feedUrl, response, responseBody, upstreamResponse.Redirects));
+        throw new UpstreamHttpStatusException(
+            CreateFailureInfo(feedUrl, response, responseBody, upstreamResponse.Redirects)
+        );
     }
 
     private static UpstreamFailureInfo CreateFailureInfo(
@@ -73,7 +75,7 @@ public sealed class UpstreamFeedClient
             if (nextUri.Scheme != Uri.UriSchemeHttp && nextUri.Scheme != Uri.UriSchemeHttps)
                 return new UpstreamResponse(response, redirects);
 
-            redirects.Add($"{(int)response.StatusCode} {currentUri} -> {nextUri}");
+            redirects.Add($"{(int)response.StatusCode} {currentUri} to {nextUri}");
             response.Dispose();
             currentUri = nextUri;
         }
@@ -81,8 +83,12 @@ public sealed class UpstreamFeedClient
 
     private static bool IsRedirect(HttpStatusCode statusCode)
     {
-        return statusCode is HttpStatusCode.Moved or HttpStatusCode.Redirect or HttpStatusCode.RedirectMethod
-            or HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect;
+        return statusCode
+            is HttpStatusCode.Moved
+                or HttpStatusCode.Redirect
+                or HttpStatusCode.RedirectMethod
+                or HttpStatusCode.TemporaryRedirect
+                or HttpStatusCode.PermanentRedirect;
     }
 
     private sealed record UpstreamResponse(HttpResponseMessage Response, IReadOnlyList<string> Redirects);
