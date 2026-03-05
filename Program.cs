@@ -6,6 +6,28 @@ var builder = WebApplication.CreateBuilder(args);
 // Add an additional config layer with our secrets
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
+// Override with env vars if provided
+Dictionary<string, string?> BuildEnvConfigOverrides()
+{
+    var overrides = new Dictionary<string, string?>();
+
+    void AddOverride(string configKey, string envVarName)
+    {
+        var value = Environment.GetEnvironmentVariable(envVarName);
+        if (!string.IsNullOrWhiteSpace(value))
+            overrides[configKey] = value;
+    }
+
+    AddOverride("Auth:Username", "FEED_SIEVE_AUTH_USERNAME");
+    AddOverride("Auth:Password", "FEED_SIEVE_AUTH_PASSWORD");
+    AddOverride("Secret", "FEED_SIEVE_SECRET");
+    AddOverride("Auth:Secret", "FEED_SIEVE_SECRET");
+
+    return overrides;
+}
+var envConfigOverrides = BuildEnvConfigOverrides();
+builder.Configuration.AddInMemoryCollection(envConfigOverrides);
+
 // Register core services
 builder
     .Services.AddHttpClient(
@@ -63,9 +85,9 @@ var isAdminAuthEnabledValue = authSection.GetRequiredSection("Enabled").Get<bool
 var baseSettings = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
 
 var defaultSecret = baseSettings.GetRequiredSection("Secret").Value!;
-var secret = builder.Configuration.GetRequiredSection("Secret").Value!;
-if (string.IsNullOrWhiteSpace(secret) || secret == defaultSecret)
-    throw new InvalidOperationException("Secret must be overridden in app settings");
+var secret = builder.Configuration.GetRequiredSection("Secret").Value;
+if (secret == defaultSecret)
+    throw new InvalidOperationException("Secret must be set via FEED_SIEVE_SECRET or overridden in appsettings.");
 
 var app = builder.Build();
 
@@ -75,11 +97,12 @@ app.UseStaticFiles();
 if (isAdminAuthEnabledValue)
 {
     var defaultAuthSection = baseSettings.GetRequiredSection("Auth");
+
     var defaultAuthUsername = defaultAuthSection.GetRequiredSection("Username").Value!;
-    var authUsername = authSection.GetRequiredSection("Username").Value;
+    var authUsername = authSection.GetSection("Username").Value;
 
     var defaultAuthPassword = defaultAuthSection.GetRequiredSection("Password").Value!;
-    var authPassword = authSection.GetRequiredSection("Password").Value;
+    var authPassword = authSection.GetSection("Password").Value;
 
     if (
         string.IsNullOrWhiteSpace(authUsername)
@@ -89,7 +112,7 @@ if (isAdminAuthEnabledValue)
     )
     {
         throw new InvalidOperationException(
-            "Auth:Username and Auth:Password must be overridden in app settings when auth is enabled"
+            "Username and password must be set via FEED_SIEVE_AUTH_USERNAME/FEED_SIEVE_AUTH_PASSWORD or overridden in appsettings when auth is enabled."
         );
     }
 
