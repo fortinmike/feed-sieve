@@ -3,9 +3,6 @@ using Microsoft.Extensions.Logging.Console;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add an additional config layer with our secrets
-builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
-
 // Override with env vars if provided
 Dictionary<string, string?> BuildEnvConfigOverrides()
 {

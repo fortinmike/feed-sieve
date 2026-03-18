@@ -8,4 +8,4 @@ services:
       - 6677:6677
     volumes:
       - ./rules.default.yaml:/app/rules.default.yaml:ro
-      - ./appsettings.Local.json:/app/appsettings.Local.json:ro
+      - ./appsettings.Production.json:/app/appsettings.Production.json:ro

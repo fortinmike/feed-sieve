@@ -1,7 +1,6 @@
 .DS_Store
 manual.local.http
 rules.default.yaml
-appsettings.Local.json
 /storage/
 
 /bin/

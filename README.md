@@ -46,7 +46,7 @@ This project is not on Docker Hub (yet). You can still use it easily with a simp
           - 6677:6677
         volumes:
           - ./volumes/rules.yaml:/app/rules.yaml:ro
-          - ./appsettings.Local.json:/app/appsettings.Local.json:ro
+          - ./appsettings.Production.json:/app/appsettings.Production.json:ro
 
 Then run `docker compose up` in the directory where the file is located.
 

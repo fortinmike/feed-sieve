@@ -11,9 +11,4 @@
     <PackageReference Include="YamlDotNet" Version="16.1.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- Only include appsettings.Local.json in local builds -->
-    <None Update="appsettings.Local.json" CopyToPublishDirectory="Never" />
-  </ItemGroup>
-
 </Project>
