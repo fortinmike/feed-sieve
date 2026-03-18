@@ -1,0 +1,7 @@
+.git
+.vscode
+.tmp
+bin
+obj
+publish
+storage
