@@ -39,6 +39,7 @@ builder
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/xml", 0.9));
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/xml", 0.8));
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json", 0.7));
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html", 0.6));
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*", 0.5));
         }
     )
@@ -71,6 +72,7 @@ builder.Services.AddSingleton(
     new FailureStore(new DirectoryInfo("./storage/failures"), consecutiveErrorsToPublishFailure)
 );
 builder.Services.AddSingleton<UpstreamFeedClient>();
+builder.Services.AddSingleton<FeedDiscoveryService>();
 builder.Services.AddScoped<Processor>();
 builder.Services.AddScoped<IFilter, RegexFilter>();
 builder.Services.AddSingleton<FilterUrlBuilder>();

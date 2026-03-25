@@ -12,15 +12,15 @@
     <h1>Feed Converter</h1>
   </div>
   <ol class="page-description">
-    <li>Paste a raw feed URL below.</li>
+    <li>Paste a site URL or a raw feed URL below.</li>
     <li>Convert the URL.</li>
     <li>Subscribe using the generated URL in your feed reader.</li>
   </ol>
   <form method="post" class="converter-form">
     @Html.AntiForgeryToken()
     <div class="converter-row">
-      <input type="url" name="FeedUrl" value="@Model.FeedUrl" placeholder="https://example.com/feed.xml"
-             aria-label="Feed URL" required>
+      <input type="url" name="FeedUrl" value="@Model.FeedUrl" placeholder="https://example.com or https://example.com/feed.xml"
+             aria-label="Site or feed URL" required>
       <button type="submit">Convert</button>
     </div>
   </form>
@@ -31,6 +31,17 @@
   @if (Model.FilterUrl is not null)
   {
     <div class="converter-output">
+      @if (Model.ShowResolvedFeedUrl)
+      {
+        <p>Resolved feed URL:</p>
+        <div class="converter-result-box">
+          <input id="resolvedFeedUrlOutput" type="text" value="@Model.ResolvedFeedUrl" readonly>
+          <button type="button" class="converter-copy-button" data-copy-target="resolvedFeedUrlOutput"
+                  aria-label="Copy resolved feed URL" title="Copy">
+            <span class="converter-copy-icon" aria-hidden="true"></span>
+          </button>
+        </div>
+      }
       <p>Filtered feed URL:</p>
       <div class="converter-result-box">
         <input id="filterUrlOutput" type="text" value="@Model.FilterUrl" readonly>
