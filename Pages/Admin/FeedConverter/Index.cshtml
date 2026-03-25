@@ -33,7 +33,7 @@
     <div class="converter-output">
       @if (Model.ShowResolvedFeedUrl)
       {
-        <p>Resolved feed URL:</p>
+        <p>Resolved feed URL</p>
         <div class="converter-result-box">
           <input id="resolvedFeedUrlOutput" type="text" value="@Model.ResolvedFeedUrl" readonly>
           <button type="button" class="converter-copy-button" data-copy-target="resolvedFeedUrlOutput"
@@ -42,7 +42,7 @@
           </button>
         </div>
       }
-      <p>Filtered feed URL:</p>
+      <p>Filtered feed URL (subscribe with this)</p>
       <div class="converter-result-box">
         <input id="filterUrlOutput" type="text" value="@Model.FilterUrl" readonly>
         <button type="button" class="converter-copy-button" data-copy-target="filterUrlOutput"
