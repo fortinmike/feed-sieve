@@ -33,22 +33,26 @@
     <div class="converter-output">
       @if (Model.ShowResolvedFeedUrl)
       {
-        <p>Resolved feed URL</p>
+        <div class="converter-output-group">
+          <p>Resolved feed URL</p>
+          <div class="converter-result-box">
+            <input id="resolvedFeedUrlOutput" type="text" value="@Model.ResolvedFeedUrl" readonly>
+            <button type="button" class="converter-copy-button" data-copy-target="resolvedFeedUrlOutput"
+                    aria-label="Copy resolved feed URL" title="Copy">
+              <span class="converter-copy-icon" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+      }
+      <div class="converter-output-group">
+        <p>Filtered feed URL (subscribe with this)</p>
         <div class="converter-result-box">
-          <input id="resolvedFeedUrlOutput" type="text" value="@Model.ResolvedFeedUrl" readonly>
-          <button type="button" class="converter-copy-button" data-copy-target="resolvedFeedUrlOutput"
-                  aria-label="Copy resolved feed URL" title="Copy">
+          <input id="filterUrlOutput" type="text" value="@Model.FilterUrl" readonly>
+          <button type="button" class="converter-copy-button" data-copy-target="filterUrlOutput"
+                  aria-label="Copy filtered feed URL" title="Copy">
             <span class="converter-copy-icon" aria-hidden="true"></span>
           </button>
         </div>
-      }
-      <p>Filtered feed URL (subscribe with this)</p>
-      <div class="converter-result-box">
-        <input id="filterUrlOutput" type="text" value="@Model.FilterUrl" readonly>
-        <button type="button" class="converter-copy-button" data-copy-target="filterUrlOutput"
-                aria-label="Copy filtered feed URL" title="Copy">
-          <span class="converter-copy-icon" aria-hidden="true"></span>
-        </button>
       </div>
     </div>
   }

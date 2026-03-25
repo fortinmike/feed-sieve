@@ -25,7 +25,7 @@
   margin-bottom: 0.5rem;
 }
 
-.converter-result-box + p {
+.converter-output-group + .converter-output-group {
   margin-top: 0.75rem;
 }
 
