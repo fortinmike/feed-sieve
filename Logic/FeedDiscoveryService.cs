@@ -28,6 +28,15 @@ public sealed partial class FeedDiscoveryService
 
     public async Task<FeedDiscoveryResult> DiscoverFeedUrlAsync(string url, CancellationToken cancellationToken)
     {
+        return await DiscoverFeedUrlAsync(url, allowCanonicalRetry: true, cancellationToken);
+    }
+
+    private async Task<FeedDiscoveryResult> DiscoverFeedUrlAsync(
+        string url,
+        bool allowCanonicalRetry,
+        CancellationToken cancellationToken
+    )
+    {
         var httpClient = _httpClientFactory.CreateClient("upstream-feed");
         using var response = await GetWithRedirectsAsync(httpClient, url, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -45,7 +54,18 @@ public sealed partial class FeedDiscoveryService
 
         var discoveredFeedUrls = DiscoverFeedUrls(body, finalUrl);
         if (discoveredFeedUrls.Count == 0)
+        {
+            if (
+                allowCanonicalRetry
+                && TryGetCanonicalUrl(body, finalUrl, out var canonicalUrl)
+                && !UrlsMatch(canonicalUrl, finalUrl)
+            )
+            {
+                return await DiscoverFeedUrlAsync(canonicalUrl, allowCanonicalRetry: false, cancellationToken);
+            }
+
             return FeedDiscoveryResult.Error("No feed link was found on that page");
+        }
 
         var preferredFeedUrls = FilterOutCommentFeeds(discoveredFeedUrls);
         if (preferredFeedUrls.Count == 1)
@@ -134,6 +154,36 @@ public sealed partial class FeedDiscoveryService
         return !string.IsNullOrWhiteSpace(link.Title) && link.Title.Contains("comment", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static bool TryGetCanonicalUrl(string html, string pageUrl, out string canonicalUrl)
+    {
+        canonicalUrl = "";
+        foreach (Match linkMatch in LinkTagRegex().Matches(html))
+        {
+            var attributes = ParseAttributes(linkMatch.Groups["attributes"].Value);
+            if (!attributes.TryGetValue("rel", out var rel))
+                continue;
+
+            var relTokens = rel
+                .Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (!relTokens.Contains("canonical", StringComparer.OrdinalIgnoreCase))
+                continue;
+
+            if (!attributes.TryGetValue("href", out var href) || string.IsNullOrWhiteSpace(href))
+                continue;
+
+            if (!Uri.TryCreate(new Uri(pageUrl), href, out var resolvedUrl))
+                continue;
+
+            if (resolvedUrl.Scheme != Uri.UriSchemeHttp && resolvedUrl.Scheme != Uri.UriSchemeHttps)
+                continue;
+
+            canonicalUrl = resolvedUrl.ToString();
+            return true;
+        }
+
+        return false;
+    }
+
     private static bool TryCreateFeedLink(
         string rawAttributes,
         string pageUrl,
@@ -184,6 +234,17 @@ public sealed partial class FeedDiscoveryService
         }
 
         return attributes;
+    }
+
+    private static bool UrlsMatch(string left, string right)
+    {
+        if (!Uri.TryCreate(left, UriKind.Absolute, out var leftUri))
+            return string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+
+        if (!Uri.TryCreate(right, UriKind.Absolute, out var rightUri))
+            return false;
+
+        return Uri.Compare(leftUri, rightUri, UriComponents.HttpRequestUrl, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) == 0;
     }
 
     private static async Task<HttpResponseMessage> GetWithRedirectsAsync(
