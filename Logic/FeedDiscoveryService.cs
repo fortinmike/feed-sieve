@@ -45,12 +45,7 @@ public sealed partial class FeedDiscoveryService
 
         var discoveredFeedUrls = DiscoverFeedUrls(body, finalUrl);
         if (discoveredFeedUrls.Count == 0)
-        {
-            if (TryCreateYouTubeFeedUrl(finalUrl, body, out var youTubeFeedUrl))
-                return FeedDiscoveryResult.Success(youTubeFeedUrl);
-
             return FeedDiscoveryResult.Error("No feed link was found on that page");
-        }
 
         var preferredFeedUrls = FilterOutCommentFeeds(discoveredFeedUrls);
         if (preferredFeedUrls.Count == 1)
@@ -228,31 +223,11 @@ public sealed partial class FeedDiscoveryService
                 or HttpStatusCode.PermanentRedirect;
     }
 
-    private static bool TryCreateYouTubeFeedUrl(string pageUrl, string html, out string feedUrl)
-    {
-        feedUrl = "";
-        if (!Uri.TryCreate(pageUrl, UriKind.Absolute, out var pageUri))
-            return false;
-
-        if (!pageUri.Host.Contains("youtube.com", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        var channelIdMatch = YouTubeChannelIdRegex().Match(html);
-        if (!channelIdMatch.Success)
-            return false;
-
-        feedUrl = $"https://www.youtube.com/feeds/videos.xml?channel_id={channelIdMatch.Groups["channelId"].Value}";
-        return true;
-    }
-
     [GeneratedRegex("<link\\b(?<attributes>[^>]*?)>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex LinkTagRegex();
 
     [GeneratedRegex("(?<name>[A-Za-z_:][-A-Za-z0-9_:.]*)\\s*=\\s*(?:\"(?<doubleQuoted>[^\"]*)\"|'(?<singleQuoted>[^']*)'|(?<unquoted>[^\\s\"'=<>`]+))", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex AttributeRegex();
-
-    [GeneratedRegex("\"browseId\":\"(?<channelId>UC[0-9A-Za-z_-]{22})\"|\"channelId\":\"(?<channelId>UC[0-9A-Za-z_-]{22})\"|itemprop=\"channelId\" content=\"(?<channelId>UC[0-9A-Za-z_-]{22})\"", RegexOptions.IgnoreCase)]
-    private static partial Regex YouTubeChannelIdRegex();
 }
 
 public sealed record FeedDiscoveryResult(string? FeedUrl, string? ErrorMessage)
