@@ -51,6 +51,24 @@ builder
                 AllowAutoRedirect = false
             }
     );
+builder
+    .Services.AddHttpClient(
+        "html-metadata",
+        client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(20);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Feed Sieve (RSS Reader)");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("NetNewsWire (RSS Reader; https://netnewswire.com/)");
+        }
+    )
+    .ConfigurePrimaryHttpMessageHandler(
+        () =>
+            new HttpClientHandler
+            {
+                AllowAutoRedirect = false,
+                UseCookies = false
+            }
+    );
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();
 builder.Services.AddLogging();

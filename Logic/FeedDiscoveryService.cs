@@ -28,7 +28,9 @@ public sealed partial class FeedDiscoveryService
 
     public async Task<FeedDiscoveryResult> DiscoverFeedUrlAsync(string url, CancellationToken cancellationToken)
     {
-        var httpClient = _httpClientFactory.CreateClient("upstream-feed");
+        // Use the HTML discovery client here so discovery requests behave more like NetNewsWire's
+        // metadata fetches instead of our feed-fetching path.
+        var httpClient = _httpClientFactory.CreateClient("html-metadata");
         using var response = await GetWithRedirectsAsync(httpClient, url, cancellationToken);
         if (!response.IsSuccessStatusCode)
             return FeedDiscoveryResult.Error("Couldn't fetch the URL for feed discovery");
