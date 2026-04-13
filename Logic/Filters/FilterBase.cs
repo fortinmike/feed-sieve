@@ -34,4 +34,9 @@ public class FilterBase
         // Atom summary
         return GetValue(item, "summary", Constants.AtomNamespace);
     }
+
+    protected string GetContentText(string content)
+    {
+        return HtmlContentTextExtractor.Extract(content);
+    }
 }

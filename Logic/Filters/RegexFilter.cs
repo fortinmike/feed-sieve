@@ -25,8 +25,9 @@ public class RegexFilter : FilterBase, IFilter
 
         // Exclude based on content
         var content = GetContent(item);
+        var contentText = GetContentText(content);
         if (rule.Match == "content" || rule.Match == "all")
-            exclude |= Match("content", title, rule, content);
+            exclude |= Match("content", title, rule, contentText) || Match("content (raw)", title, rule, content);
 
         return !exclude;
     }
