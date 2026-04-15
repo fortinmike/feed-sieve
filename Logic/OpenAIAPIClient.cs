@@ -24,26 +24,18 @@ public class OpenAIAPIClient : ILLMClient
         !string.IsNullOrWhiteSpace(_openAIAPIOptions.BaseUrl)
         && !string.IsNullOrWhiteSpace(_openAIAPIOptions.ApiKey);
 
-    public async Task<string?> SummarizeAsync(
-        string title,
-        string contentText,
-        string prompt,
-        CancellationToken cancellationToken
-    )
+    public async Task<string?> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken)
     {
         if (!IsConfigured)
         {
-            _logger.LogWarning("Skipping article summary because OpenAIAPI is not configured");
+            _logger.LogWarning("Skipping LLM request because OpenAIAPI is not configured");
             return null;
         }
 
         var httpClient = _httpClientFactory.CreateClient("openai-api");
         using var request = new HttpRequestMessage(HttpMethod.Post, GetChatCompletionsUri());
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _openAIAPIOptions.ApiKey);
-        request.Content = JsonContent.Create(
-            CreateRequestBody(title, contentText, prompt),
-            options: SerializerOptions
-        );
+        request.Content = JsonContent.Create(CreateRequestBody(systemPrompt, userPrompt), options: SerializerOptions);
 
         try
         {
@@ -52,18 +44,18 @@ public class OpenAIAPIClient : ILLMClient
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning(
-                    "OpenAIAPI summary request failed with HTTP {StatusCode}: {ResponseBody}",
+                    "OpenAIAPI request failed with HTTP {StatusCode}: {ResponseBody}",
                     (int)response.StatusCode,
                     responseBody
                 );
                 return null;
             }
 
-            return ExtractSummary(responseBody);
+            return ExtractResponseText(responseBody);
         }
         catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            _logger.LogWarning(ex, "OpenAIAPI summary request timed out for '{Title}'", title);
+            _logger.LogWarning(ex, "OpenAIAPI request timed out");
             return null;
         }
         catch (OperationCanceledException)
@@ -72,7 +64,7 @@ public class OpenAIAPIClient : ILLMClient
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "OpenAIAPI summary request failed for '{Title}'", title);
+            _logger.LogError(ex, "OpenAIAPI request failed");
             return null;
         }
     }
@@ -86,7 +78,7 @@ public class OpenAIAPIClient : ILLMClient
         return new Uri(new Uri(baseUrl, UriKind.Absolute), "chat/completions");
     }
 
-    private object CreateRequestBody(string title, string contentText, string prompt)
+    private object CreateRequestBody(string systemPrompt, string userPrompt)
     {
         return new
         {
@@ -96,29 +88,18 @@ public class OpenAIAPIClient : ILLMClient
                 new
                 {
                     role = "system",
-                    content =
-                        "You summarize feed articles for display at the top of the original article body. Return only an HTML fragment. Do not use markdown. Do not repeat the title as a heading."
+                    content = systemPrompt
                 },
                 new
                 {
                     role = "user",
-                    content =
-                        $"""
-                        Summary instructions:
-                        {prompt}
-
-                        Article title:
-                        {title}
-
-                        Article content:
-                        {contentText}
-                        """
+                    content = userPrompt
                 }
             }
         };
     }
 
-    private string? ExtractSummary(string responseBody)
+    private string? ExtractResponseText(string responseBody)
     {
         using var jsonDocument = JsonDocument.Parse(responseBody);
         if (!jsonDocument.RootElement.TryGetProperty("choices", out var choices) || choices.GetArrayLength() == 0)
@@ -137,7 +118,7 @@ public class OpenAIAPIClient : ILLMClient
     private string? ReadContent(JsonElement content)
     {
         if (content.ValueKind == JsonValueKind.String)
-            return NormalizeSummary(content.GetString());
+            return NormalizeContent(content.GetString());
 
         if (content.ValueKind != JsonValueKind.Array)
             return null;
@@ -157,12 +138,12 @@ public class OpenAIAPIClient : ILLMClient
             }
         }
 
-        return NormalizeSummary(string.Concat(parts));
+        return NormalizeContent(string.Concat(parts));
     }
 
-    private string? NormalizeSummary(string? summary)
+    private string? NormalizeContent(string? content)
     {
-        var trimmed = summary?.Trim();
+        var trimmed = content?.Trim();
         return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
     }
 
