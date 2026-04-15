@@ -1,10 +1,16 @@
-- rule: Ads and Sponsors
-  match: title
-  regex: \bad\b|advert(isement)?|sponsor(ed)?
-  caseSensitive: false
+globalFilters:
+  - rule: Ads and Sponsors
+    match: title
+    regex: \bad\b|advert(isement)?|sponsor(ed)?
+    caseSensitive: false
 
-- rule: Rule that applies to a specific feed only
-  feed: somesite.com
-  match: all
-  regex: flamboyant|discombobulate
-  caseSensitive: false
+feeds:
+  - name: Some Site
+    feed: somesite.com
+    filters:
+      - rule: Fancy words
+        match: all
+        regex: flamboyant|discombobulate
+        caseSensitive: false
+    summary:
+      prompt: summarize and vulgarize the new features in order of importance

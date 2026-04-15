@@ -1,83 +1,343 @@
 /* Layout */
 
-.rules-form {
+.rules-editor-page {
+  --rules-border-width: var(--pico-border-width);
+  --rules-border-color: var(--pico-form-element-border-color);
+  --rules-muted-border-color: var(--pico-muted-border-color);
+  --rules-radius: var(--pico-border-radius);
+  --rules-surface-color: var(--pico-card-background-color);
+  --rules-control-color: var(--pico-form-element-color);
+  --rules-control-background: var(--pico-form-element-background-color);
+  --rules-control-background-focus: color-mix(
+    in srgb,
+    var(--pico-primary-focus) 22%,
+    var(--pico-form-element-background-color)
+  );
+  --rules-control-border-color: var(--pico-form-element-border-color);
+  --rules-control-focus-color: var(--pico-form-element-focus-color);
+  --rules-placeholder-color: color-mix(in srgb, var(--pico-muted-color) 35%, transparent);
+  --rules-label-width: 5.25rem;
+  --rules-actions-width: 1.5rem;
+  --rules-field-gap: 0.35rem;
+  --rules-row-gap: 0.28rem;
+  --rules-row-padding-y: 0.45rem;
+  --rules-row-padding-x: 0.5rem;
+  --rules-control-height: 1.95rem;
+  --rules-control-font-size: 0.86rem;
+  color: var(--app-text);
+}
+
+.rules-editor-page h1 {
+  margin: 0;
+  text-align: center;
+}
+
+.rules-editor-page .subpage-header h1 {
+  grid-column: 2;
+}
+
+.rules-editor-page p {
+  font-size: 0.875rem;
+}
+
+.rules-editor-page .page-description {
+  color: var(--pico-muted-color);
+}
+
+.rules-editor-page .subpage-back-link,
+.rules-editor-page .subpage-save-button {
+  width: 4.5rem;
+}
+
+.rules-editor-page .subpage-back-link {
+  grid-column: 1;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.4rem 0.65rem;
+  border: var(--rules-border-width) solid var(--rules-muted-border-color);
+  border-radius: var(--rules-radius);
+  background: var(--rules-control-background);
+  color: var(--pico-muted-color);
+  font-size: 0.875rem;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.rules-editor-page .subpage-back-link:hover,
+.rules-editor-page .subpage-back-link:focus-visible {
+  background: var(--pico-form-element-selected-background-color);
+  color: var(--pico-color);
+  text-decoration: none;
+}
+
+.rules-editor-page .rules-form {
   margin-top: 1rem;
 }
 
-.rules-list {
+.rules-editor-page .rules-section + .rules-section {
+  margin-top: 1.4rem;
+}
+
+.rules-editor-page .rules-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.7rem;
+}
+
+.rules-editor-page .rules-section-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.rules-editor-page .rules-list,
+.rules-editor-page .feed-rules-list {
   display: grid;
   gap: 0.65rem;
   margin: 1rem 0;
 }
 
-.rules-list.is-empty {
-  border: var(--pico-border-width) dashed var(--pico-muted-border-color);
-  border-radius: var(--pico-border-radius);
+.rules-editor-page .rules-list.is-empty,
+.rules-editor-page .feed-rules-list.is-empty {
+  border: var(--rules-border-width) dashed var(--rules-muted-border-color);
+  border-radius: var(--rules-radius);
   padding: 0.85rem;
 }
 
-.rules-empty {
+.rules-editor-page .rules-empty {
   margin: 0;
   color: var(--pico-muted-color);
   font-size: 0.875rem;
 }
 
-.rule-row {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.28rem;
-  align-items: stretch;
+.rules-editor-page .rule-row,
+.rules-editor-page .feed-rule-card {
   margin: 0;
-  border: var(--pico-border-width) solid var(--pico-form-element-border-color);
-  border-radius: var(--pico-border-radius);
-  background: var(--pico-card-background-color);
-  padding: 0.45rem 0.5rem;
+  border: var(--rules-border-width) solid var(--rules-border-color);
+  border-radius: var(--rules-radius);
+  background: var(--rules-surface-color);
 }
 
-.rule-row.is-dragging {
+.rules-editor-page .rule-row,
+.rules-editor-page .feed-rule-section {
+  display: flex;
+  align-items: stretch;
+  gap: var(--rules-row-gap);
+}
+
+.rules-editor-page .rule-row {
+  padding: var(--rules-row-padding-y) var(--rules-row-padding-x);
+}
+
+.rules-editor-page .feed-rule-card {
+  overflow: hidden;
+}
+
+.rules-editor-page .feed-rule-top {
+  padding: var(--rules-row-padding-y) var(--rules-row-padding-x);
+}
+
+.rules-editor-page .feed-rule-bottom {
+  padding: var(--rules-row-padding-y) var(--rules-row-padding-x);
+  border-top: 1px solid var(--rules-border-color);
+  background: color-mix(in srgb, var(--rules-surface-color) 88%, black);
+}
+
+.rules-editor-page .rule-row.is-dragging,
+.rules-editor-page .feed-rule-card.is-dragging {
   opacity: 0.75;
 }
 
-.rule-row-actions {
+.rules-editor-page .rule-row-actions {
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.25rem;
-  width: 1.5rem;
+  flex: 0 0 var(--rules-actions-width);
+  width: var(--rules-actions-width);
+  min-width: var(--rules-actions-width);
 }
 
-.rule-fields {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.35rem;
+.rules-editor-page .rule-row-actions {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.25rem;
+}
+
+.rules-editor-page .rule-row-actions-spacer {
+  flex: 1 1 auto;
+}
+
+.rules-editor-page .rule-fields {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--rules-field-gap);
   min-width: 0;
 }
 
-.rule-field {
-  display: grid;
-  grid-template-columns: 3rem 1fr;
-  gap: 0.35rem;
+.rules-editor-page .rule-field {
+  display: flex;
   align-items: center;
+  gap: var(--rules-field-gap);
+  min-width: 0;
   margin: 0;
 }
 
-.rule-field-label {
-  justify-self: end;
-  text-align: right;
-  white-space: nowrap;
+.rules-editor-page .rule-field-label {
+  flex: 0 0 var(--rules-label-width);
+  width: var(--rules-label-width);
   color: var(--pico-muted-color);
   font-size: 0.73rem;
   line-height: 1;
+  text-align: right;
+  white-space: nowrap;
 }
 
-.rule-field input,
-.rule-field select {
+.rules-editor-page .rule-field > input:not([type="checkbox"]),
+.rules-editor-page .rule-field > select,
+.rules-editor-page .rule-field > .rule-regex-stack,
+.rules-editor-page .rule-field > .feed-summary-controls {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rules-editor-page input[type="text"]:not(.rule-overlay-input),
+.rules-editor-page select {
+  display: block;
+  width: 100%;
+  min-width: 0;
   margin: 0;
-  font-size: 0.86rem;
-  height: 1.95rem;
-  padding-top: 0.28rem;
-  padding-bottom: 0.28rem;
+  padding: 0.28rem 0.85rem;
+  border: var(--rules-border-width) solid var(--rules-control-border-color);
+  border-radius: var(--rules-radius);
+  background: var(--rules-control-background);
+  color: var(--rules-control-color);
+  font: inherit;
+  font-size: var(--rules-control-font-size);
+  line-height: 1.35;
+  height: var(--rules-control-height);
+  box-shadow: none;
+  outline: none;
+}
+
+.rules-editor-page select {
+  appearance: none;
+  padding-right: 2.2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23858fa3' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.6' d='M4 6.5 8 10.5l4-4'/%3E%3C/svg%3E");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 0.85rem 0.85rem;
+}
+
+.rules-editor-page input[type="text"]:not(.rule-overlay-input)::placeholder,
+.rules-editor-page select:invalid {
+  color: var(--rules-placeholder-color);
+}
+
+.rules-editor-page input[type="text"]:not(.rule-overlay-input):focus,
+.rules-editor-page select:focus {
+  background: var(--rules-control-background-focus);
+  border-color: var(--rules-control-focus-color);
+}
+
+.rules-editor-page input[type="checkbox"] {
+  appearance: none;
+  display: inline-grid;
+  place-items: center;
+  width: 1.05rem;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  margin: 0;
+  padding: 0;
+  border: var(--rules-border-width) solid var(--rules-control-border-color);
+  border-radius: 0.2rem;
+  background: var(--rules-control-background);
+  color: var(--pico-primary-inverse);
+  box-shadow: none;
+  outline: none;
+}
+
+.rules-editor-page input[type="checkbox"]::after {
+  content: "";
+  width: 0.7rem;
+  height: 0.7rem;
+  background-color: currentColor;
+  -webkit-mask: url("/images/check.svg") center / contain no-repeat;
+  mask: url("/images/check.svg") center / contain no-repeat;
+  opacity: 0;
+}
+
+.rules-editor-page input[type="checkbox"]:checked {
+  border-color: var(--pico-primary-border);
+  background: var(--pico-primary-background);
+}
+
+.rules-editor-page input[type="checkbox"]:checked::after {
+  opacity: 1;
+}
+
+.rules-editor-page input[type="checkbox"]:focus-visible {
+  border-color: var(--rules-control-focus-color);
+}
+
+.rules-editor-page .feed-summary-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--rules-field-gap);
+  min-width: 0;
+}
+
+.rules-editor-page .feed-rule-input-summary-prompt.is-disabled {
+  opacity: 0.55;
+}
+
+.rules-editor-page .feed-rule-filters-list {
+  margin: 0;
+  gap: 0;
+}
+
+.rules-editor-page .feed-rule-filters-list .rule-row {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.rules-editor-page .feed-rule-filters-list .rule-row + .rule-row {
+  margin-top: 0.45rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid color-mix(in srgb, var(--rules-border-color) 60%, black);
+}
+
+.rules-editor-page .feed-rule-filters-list .rule-row-actions {
+  padding: 0;
+}
+
+.rules-editor-page .feed-rule-filters-list .rule-fields {
+  padding: 0;
+}
+
+.rules-editor-page .feed-rule-add-filter-button {
+  width: 100%;
+  margin: 0;
+  padding: 0.85rem;
+  border: var(--rules-border-width) dashed var(--rules-muted-border-color);
+  border-radius: var(--rules-radius);
+  background: transparent;
+  color: var(--pico-muted-color);
+  font: inherit;
+  text-align: center;
+  box-shadow: none;
+}
+
+.rules-editor-page .feed-rule-add-filter-button:hover,
+.rules-editor-page .feed-rule-add-filter-button:focus-visible {
+  border-color: var(--rules-border-color);
+  background: var(--pico-form-element-selected-background-color);
+  color: var(--pico-color);
 }
 
 .rule-regex-stack {
@@ -103,12 +363,7 @@
 
 /* Header actions */
 
-.pico .subpage-back-link,
-.pico .subpage-save-button {
-  width: 4.5rem;
-}
-
-.pico .subpage-save-button {
+.rules-editor-page .subpage-save-button {
   grid-column: 3;
   justify-self: end;
   display: inline-flex;
@@ -125,8 +380,8 @@
   box-shadow: none;
 }
 
-.pico .subpage-save-button:hover,
-.pico .subpage-save-button:focus-visible {
+.rules-editor-page .subpage-save-button:hover,
+.rules-editor-page .subpage-save-button:focus-visible {
   background: color-mix(in srgb, var(--pico-primary-background) 88%, black);
   color: var(--pico-primary-inverse);
 }
@@ -142,7 +397,8 @@
 
 /* Row action buttons */
 
-.pico .rule-reorder-handle {
+.rules-editor-page .rule-reorder-handle,
+.rules-editor-page .feed-rule-reorder-handle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -157,12 +413,15 @@
   box-shadow: none;
 }
 
-.pico .rule-reorder-handle:active {
+.rules-editor-page .rule-reorder-handle:active,
+.rules-editor-page .feed-rule-reorder-handle:active {
   cursor: grabbing;
 }
 
-.pico .rule-reorder-handle:hover,
-.pico .rule-reorder-handle:focus-visible {
+.rules-editor-page .rule-reorder-handle:hover,
+.rules-editor-page .rule-reorder-handle:focus-visible,
+.rules-editor-page .feed-rule-reorder-handle:hover,
+.rules-editor-page .feed-rule-reorder-handle:focus-visible {
   color: var(--pico-color);
 }
 
@@ -175,7 +434,8 @@
   mask: url("/images/grip-vertical.svg") center / contain no-repeat;
 }
 
-.pico .rule-delete {
+.rules-editor-page .rule-delete,
+.rules-editor-page .feed-rule-delete {
   align-self: end;
   display: inline-flex;
   align-items: center;
@@ -191,8 +451,10 @@
   box-shadow: none;
 }
 
-.pico .rule-delete:hover,
-.pico .rule-delete:focus-visible {
+.rules-editor-page .rule-delete:hover,
+.rules-editor-page .rule-delete:focus-visible,
+.rules-editor-page .feed-rule-delete:hover,
+.rules-editor-page .feed-rule-delete:focus-visible {
   color: color-mix(in srgb, var(--pico-del-color) 82%, white);
 }
 
@@ -217,7 +479,7 @@
   margin: 0;
 }
 
-.pico .rules-add-button {
+.rules-editor-page .rules-add-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -231,8 +493,8 @@
   box-shadow: none;
 }
 
-.pico .rules-add-button:hover,
-.pico .rules-add-button:focus-visible {
+.rules-editor-page .rules-add-button:hover,
+.rules-editor-page .rules-add-button:focus-visible {
   background: var(--pico-form-element-selected-background-color);
   color: var(--pico-color);
 }
@@ -252,8 +514,10 @@
   position: relative;
   min-width: 0;
   overflow: hidden;
+  border: var(--rules-border-width) solid var(--rules-control-border-color);
   border-radius: var(--pico-border-radius);
   background: var(--pico-form-element-background-color);
+  box-shadow: none;
 }
 
 .rule-overlay-editor .rule-overlay {
@@ -288,6 +552,9 @@
   padding: var(--rule-regex-padding-y) var(--rule-regex-padding-right) var(--rule-regex-padding-y)
     var(--rule-regex-padding-x);
   margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   background: transparent;
   font-family: var(--app-font-mono);
   font-size: var(--rule-regex-font-size);
@@ -302,7 +569,6 @@
 }
 
 .rule-overlay-editor .rule-overlay-input:focus {
-  border-color: var(--pico-form-element-focus-color);
   box-shadow: none;
   outline: none;
 }
@@ -314,6 +580,11 @@
 
 .rule-overlay-editor:focus-within {
   background: color-mix(in srgb, var(--pico-primary-focus) 22%, transparent);
+  border-color: var(--rules-control-focus-color);
+}
+
+.rule-regex-editor:has(.rule-input-regex.is-invalid) {
+  border-color: var(--pico-del-color);
 }
 
 /* Regex colorizer token theme */
@@ -372,14 +643,14 @@
 }
 
 .rule-regex-editor .rule-input-regex.is-invalid {
-  border-color: var(--pico-del-color);
+  box-shadow: none;
 }
 
 /* Regex test toggle + match state */
 
-.pico .rule-regex-case-toggle,
-.pico .rule-regex-test-toggle,
-.pico .rule-regex101-link {
+.rules-editor-page .rule-regex-case-toggle,
+.rules-editor-page .rule-regex-test-toggle,
+.rules-editor-page .rule-regex101-link {
   position: absolute;
   top: 50%;
   z-index: 4;
@@ -397,35 +668,35 @@
   transform: translateY(-50%);
 }
 
-.pico .rule-regex-case-toggle {
+.rules-editor-page .rule-regex-case-toggle {
   right: var(--rule-regex-case-toggle-right);
   color: #fff;
 }
 
-.pico .rule-regex-case-toggle.is-case-sensitive {
+.rules-editor-page .rule-regex-case-toggle.is-case-sensitive {
   color: #49a0ff;
 }
 
-.pico .rule-regex-test-toggle,
-.pico .rule-regex101-link {
+.rules-editor-page .rule-regex-test-toggle,
+.rules-editor-page .rule-regex101-link {
   right: var(--rule-regex-toggle-right);
 }
 
-.pico .rule-regex-case-toggle:hover,
-.pico .rule-regex-case-toggle:focus-visible {
+.rules-editor-page .rule-regex-case-toggle:hover,
+.rules-editor-page .rule-regex-case-toggle:focus-visible {
   color: #fff;
 }
 
-.pico .rule-regex-case-toggle.is-case-sensitive:hover,
-.pico .rule-regex-case-toggle.is-case-sensitive:focus-visible {
+.rules-editor-page .rule-regex-case-toggle.is-case-sensitive:hover,
+.rules-editor-page .rule-regex-case-toggle.is-case-sensitive:focus-visible {
   color: #49a0ff;
 }
 
-.pico .rule-regex-test-toggle:hover,
-.pico .rule-regex-test-toggle:focus-visible,
-.pico .rule-regex-test-toggle.is-active,
-.pico .rule-regex101-link:hover,
-.pico .rule-regex101-link:focus-visible {
+.rules-editor-page .rule-regex-test-toggle:hover,
+.rules-editor-page .rule-regex-test-toggle:focus-visible,
+.rules-editor-page .rule-regex-test-toggle.is-active,
+.rules-editor-page .rule-regex101-link:hover,
+.rules-editor-page .rule-regex101-link:focus-visible {
   color: var(--pico-color);
 }
 
@@ -554,7 +825,7 @@
   color: var(--pico-ins-color);
 }
 
-.pico .rules-toast-close {
+.rules-editor-page .rules-toast-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -571,7 +842,16 @@
 }
 
 @media (max-width: 640px) {
-  .rule-field-label {
+  .rules-editor-page .rules-section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rules-editor-page .rule-field-label {
     font-size: 0.7rem;
+  }
+
+  .rules-editor-page .feed-rule-card {
+    --rules-label-width: 4.4rem;
   }
 }

@@ -1,14 +1,22 @@
 const rulesForm = document.getElementById("rulesForm");
-const addRuleButton = document.getElementById("addRuleButton");
 const saveRulesButton = document.getElementById("saveRulesButton");
-const rulesList = document.getElementById("rulesList");
-const rulesEmptyState = document.getElementById("rulesEmptyState");
 const rulesSummary = document.getElementById("rulesSummary");
 const rulesJsonInput = document.getElementById("RulesJson");
 const initialRulesData = document.getElementById("initialRulesData");
-const ruleRowTemplate = document.getElementById("ruleRowTemplate");
+
+const addGlobalFilterButton = document.getElementById("addGlobalFilterButton");
+const globalFiltersList = document.getElementById("globalFiltersList");
+const globalFiltersEmptyState = document.getElementById("globalFiltersEmptyState");
+
+const addFeedRuleButton = document.getElementById("addFeedRuleButton");
+const feedRulesList = document.getElementById("feedRulesList");
+const feedRulesEmptyState = document.getElementById("feedRulesEmptyState");
+
+const filterRowTemplate = document.getElementById("filterRowTemplate");
+const feedRuleTemplate = document.getElementById("feedRuleTemplate");
 
 const regexErrorProbe = document.createElement("div");
+
 const getRegexAnalysis = (pattern) => {
   if (pattern === "") {
     return { html: "", error: null };
@@ -28,8 +36,6 @@ const getRegexAnalysis = (pattern) => {
 };
 
 const tagRegexOverlayTokens = (regexOverlay) => {
-  // RegexColorizer outputs the markup but doesn't provide dedicated classes for these token types,
-  // so we tag them here to apply our custom theme colors in CSS
   regexOverlay.querySelectorAll("b").forEach((tokenNode) => {
     const token = tokenNode.textContent ?? "";
     tokenNode.classList.toggle("rule-alt", token === "|");
@@ -45,9 +51,7 @@ const createOverlayField = ({ input, overlay, render, afterRender }) => {
   const update = () => {
     const state = render(input.value);
     overlay.innerHTML = state.html;
-    if (afterRender) {
-      afterRender({ overlay, state });
-    }
+    afterRender?.({ overlay, state });
     syncScroll();
     return state;
   };
@@ -112,19 +116,9 @@ const getRegexTestOverlayState = (sample, pattern, isInvalidPattern, caseSensiti
   return { html: parts.join(""), isMatch };
 };
 
-const parseInitialRules = () => {
-  try {
-    const parsed = JSON.parse(initialRulesData.textContent ?? "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-const normalizeRule = (rule) => {
+const normalizeFilterRule = (rule) => {
   return {
     name: typeof rule?.name === "string" ? rule.name : "",
-    feed: typeof rule?.feed === "string" ? rule.feed : "",
     match: typeof rule?.match === "string" ? rule.match : "title",
     regex: typeof rule?.regex === "string" ? rule.regex : "",
     caseSensitive: rule?.caseSensitive === true,
@@ -132,15 +126,39 @@ const normalizeRule = (rule) => {
   };
 };
 
+const normalizeFeedRule = (rule) => {
+  return {
+    name: typeof rule?.name === "string" ? rule.name : "",
+    feed: typeof rule?.feed === "string" ? rule.feed : "",
+    summaryEnabled: rule?.summaryEnabled === true,
+    summaryPrompt: typeof rule?.summaryPrompt === "string" ? rule.summaryPrompt : "",
+    filters: Array.isArray(rule?.filters) ? rule.filters.map(normalizeFilterRule) : [],
+  };
+};
+
+const normalizeRulesConfig = (config) => {
+  return {
+    globalFilters: Array.isArray(config?.globalFilters) ? config.globalFilters.map(normalizeFilterRule) : [],
+    feeds: Array.isArray(config?.feeds) ? config.feeds.map(normalizeFeedRule) : [],
+  };
+};
+
+const parseInitialRules = () => {
+  try {
+    return normalizeRulesConfig(JSON.parse(initialRulesData.textContent ?? "{}"));
+  } catch {
+    return { globalFilters: [], feeds: [] };
+  }
+};
+
 const normalizeMatch = (match) => {
   return match === "content" || match === "all" ? match : "title";
 };
 
-const getRuleRowElements = (rowElement) => {
+const getFilterRowElements = (rowElement) => {
   return {
     row: rowElement,
     nameInput: rowElement.querySelector(".rule-input-name"),
-    feedInput: rowElement.querySelector(".rule-input-feed"),
     matchInput: rowElement.querySelector(".rule-input-match"),
     regexInput: rowElement.querySelector(".rule-input-regex"),
     regexCaseToggle: rowElement.querySelector(".rule-regex-case-toggle"),
@@ -156,17 +174,17 @@ const getRuleRowElements = (rowElement) => {
   };
 };
 
-const readDraftRule = (rowElements) => {
+const readDraftFilterRule = (rowElement) => {
+  const rowElements = getFilterRowElements(rowElement);
   const sample = rowElements.regexTestInput.value.trim();
   const rule = {
     name: rowElements.nameInput.value.trim(),
-    feed: rowElements.feedInput.value.trim(),
     match: rowElements.matchInput.value.trim(),
     regex: rowElements.regexInput.value.trim(),
     caseSensitive: rowElements.regexCaseToggle.classList.contains("is-case-sensitive"),
   };
 
-  if (rule.name === "" && rule.feed === "" && rule.regex === "") {
+  if (rule.name === "" && rule.regex === "") {
     return null;
   }
 
@@ -177,9 +195,8 @@ const readDraftRule = (rowElements) => {
   return rule;
 };
 
-const writeRule = (rowElements, rule) => {
+const writeFilterRule = (rowElements, rule) => {
   rowElements.nameInput.value = rule.name;
-  rowElements.feedInput.value = rule.feed;
   rowElements.matchInput.value = normalizeMatch(rule.match);
   rowElements.regexInput.value = rule.regex;
   setCaseSensitive(rowElements, rule.caseSensitive);
@@ -196,90 +213,57 @@ const setCaseSensitive = (rowElements, isCaseSensitive) => {
   rowElements.regexCaseToggle.title = isCaseSensitive ? "Case-sensitive" : "Case-insensitive";
 };
 
-const updateEmptyState = () => {
-  const hasRows = rulesList.querySelector(".rule-row") !== null;
-  rulesList.classList.toggle("is-empty", !hasRows);
-  rulesEmptyState.hidden = hasRows;
+const updateListEmptyState = (listElement, emptyStateElement, itemSelector) => {
+  const hasRows = listElement.querySelector(itemSelector) !== null;
+  listElement.classList.toggle("is-empty", !hasRows);
+  emptyStateElement.hidden = hasRows;
 };
 
-const getDraftRules = () => {
-  const rows = [...rulesList.querySelectorAll(".rule-row")];
-  return rows
-    .map(getRuleRowElements)
-    .map(readDraftRule)
-    .filter((rule) => rule !== null);
+const getDragAfterElement = (listElement, itemSelector, y) => {
+  const rows = [...listElement.querySelectorAll(`${itemSelector}:not(.is-dragging)`)];
+  return rows.reduce(
+    (closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset >= 0 || offset <= closest.offset) {
+        return closest;
+      }
+
+      return { offset, element: child };
+    },
+    { offset: Number.NEGATIVE_INFINITY, element: null },
+  ).element;
 };
 
-const updateSummary = () => {
-  const draftRules = getDraftRules();
-  const scopedRules = draftRules.filter((rule) => rule.feed !== "");
-  const globalRules = draftRules.length - scopedRules.length;
-  const distinctFeeds = new Set(scopedRules.map((rule) => rule.feed.toLowerCase()));
-  const totalRules = draftRules.length;
+const setupSortableList = (listElement, itemSelector, onReorder) => {
+  listElement.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    const dragging = listElement.querySelector(`${itemSelector}.is-dragging`);
+    if (!(dragging instanceof HTMLElement)) {
+      return;
+    }
 
-  rulesSummary.textContent = `You have ${scopedRules.length} rules covering ${distinctFeeds.size} feeds plus ${globalRules} global rules (${totalRules} total)`;
+    const afterElement = getDragAfterElement(listElement, itemSelector, event.clientY);
+    if (!(afterElement instanceof HTMLElement)) {
+      listElement.append(dragging);
+      return;
+    }
+
+    listElement.insertBefore(dragging, afterElement);
+  });
+
+  listElement.addEventListener("dragend", () => {
+    onReorder();
+  });
 };
 
-const pageTitle = document.title;
-let savedRulesSnapshot = "";
-let isDirty = false;
-let canNavigate = false;
-
-const markDirtyState = () => {
-  rulesForm.classList.toggle("is-dirty", isDirty);
-  document.title = isDirty ? `* ${pageTitle}` : pageTitle;
-};
-
-const refreshDirtyState = () => {
-  isDirty = JSON.stringify(getDraftRules()) !== savedRulesSnapshot;
-  markDirtyState();
-};
-
-const allowNavigationTemporarily = () => {
-  canNavigate = true;
-  window.setTimeout(() => {
-    canNavigate = false;
-  }, 0);
-};
-
-const allowNavigationForSubmit = () => {
-  canNavigate = true;
-};
-
-const handleUnsafeNavigation = () => {
-  if (!isDirty || canNavigate) {
-    return true;
-  }
-
-  const shouldLeave = window.confirm("You have unsaved rule changes. Leave without saving?");
-  if (shouldLeave) {
-    allowNavigationTemporarily();
-  }
-  return shouldLeave;
-};
-
-let summaryDebounceHandle = 0;
-
-const scheduleSummaryUpdate = () => {
-  if (summaryDebounceHandle !== 0) {
-    window.clearTimeout(summaryDebounceHandle);
-  }
-
-  summaryDebounceHandle = window.setTimeout(() => {
-    summaryDebounceHandle = 0;
-    updateSummary();
-  }, 120);
-};
-
-const createRuleRow = (initialRule) => {
-  const rule = normalizeRule(initialRule);
-  const templateRoot = ruleRowTemplate.content.firstElementChild;
-  const row = templateRoot.cloneNode(true);
-
+const createFilterRow = (initialRule, onDelete) => {
+  const rule = normalizeFilterRule(initialRule);
+  const row = filterRowTemplate.content.firstElementChild.cloneNode(true);
+  const rowElements = getFilterRowElements(row);
   let canDrag = false;
-  const rowElements = getRuleRowElements(row);
 
-  writeRule(rowElements, rule);
+  writeFilterRule(rowElements, rule);
 
   const regexOverlayField = createOverlayField({
     input: rowElements.regexInput,
@@ -324,7 +308,6 @@ const createRuleRow = (initialRule) => {
     rowElements.regexTestEditor.hidden = !shouldShow;
     rowElements.regexTestToggle.setAttribute("aria-expanded", String(shouldShow));
     rowElements.regexTestToggle.classList.toggle("is-active", shouldShow);
-
     updateRegexTestState();
   };
 
@@ -346,15 +329,12 @@ const createRuleRow = (initialRule) => {
     updateRegexTestState();
   };
 
-  rowElements.regexInput.addEventListener("input", () => {
-    updateRegexUi();
-  });
+  rowElements.regexInput.addEventListener("input", updateRegexUi);
   rowElements.regexCaseToggle.addEventListener("pointerdown", (event) => {
     event.preventDefault();
   });
   rowElements.regexCaseToggle.addEventListener("click", () => {
-    const isCaseSensitive = !rowElements.regexCaseToggle.classList.contains("is-case-sensitive");
-    setCaseSensitive(rowElements, isCaseSensitive);
+    setCaseSensitive(rowElements, !rowElements.regexCaseToggle.classList.contains("is-case-sensitive"));
     updateRegexUi();
     refreshDirtyState();
   });
@@ -367,31 +347,27 @@ const createRuleRow = (initialRule) => {
   });
   rowElements.regex101Link.addEventListener("click", openInRegex101);
   rowElements.regexTestInput.addEventListener("input", updateRegexTestState);
-  requestAnimationFrame(() => {
-    if (!row.isConnected) {
-      return;
-    }
-
-    updateRegexUi();
-  });
 
   rowElements.reorderHandle.addEventListener("pointerdown", () => {
     canDrag = true;
   });
 
   rowElements.deleteButton.addEventListener("click", () => {
-    const ruleName = rowElements.nameInput.value.trim() || "Untitled rule";
-    if (!window.confirm(`Delete "${ruleName}"?`)) {
+    const filterName = rowElements.nameInput.value.trim() || "Untitled filter";
+    if (!window.confirm(`Delete "${filterName}"?`)) {
       return;
     }
 
     row.remove();
-    updateEmptyState();
+    onDelete();
     updateSummary();
     refreshDirtyState();
   });
 
   row.addEventListener("dragstart", (event) => {
+    if (event.target !== row)
+      return;
+
     if (!canDrag) {
       event.preventDefault();
       return;
@@ -407,49 +383,260 @@ const createRuleRow = (initialRule) => {
   row.addEventListener("pointerup", () => {
     canDrag = false;
   });
-
   row.addEventListener("pointercancel", () => {
     canDrag = false;
   });
-
   row.addEventListener("dragend", () => {
     canDrag = false;
     row.classList.remove("is-dragging");
   });
 
+  requestAnimationFrame(() => {
+    if (row.isConnected) {
+      updateRegexUi();
+    }
+  });
+
   return row;
 };
 
-const getDragAfterElement = (y) => {
-  const rows = [...rulesList.querySelectorAll(".rule-row:not(.is-dragging)")];
-  return rows.reduce(
-    (closest, child) => {
-      const box = child.getBoundingClientRect();
-      const offset = y - box.top - box.height / 2;
-      if (offset >= 0 || offset <= closest.offset) {
-        return closest;
-      }
-
-      return { offset, element: child };
-    },
-    { offset: Number.NEGATIVE_INFINITY, element: null },
-  ).element;
+const getFeedRuleElements = (cardElement) => {
+  return {
+    card: cardElement,
+    nameInput: cardElement.querySelector(".feed-rule-input-name"),
+    feedInput: cardElement.querySelector(".feed-rule-input-feed"),
+    summaryEnabledInput: cardElement.querySelector(".feed-rule-input-summary-enabled"),
+    summaryPromptInput: cardElement.querySelector(".feed-rule-input-summary-prompt"),
+    filtersList: cardElement.querySelector(".feed-rule-filters-list"),
+    addFilterButton: cardElement.querySelector(".feed-rule-add-filter-button"),
+    reorderHandle: cardElement.querySelector(".feed-rule-reorder-handle"),
+    deleteButton: cardElement.querySelector(".feed-rule-delete"),
+  };
 };
 
-const appendRuleRow = (rule, focusNameInput) => {
-  const row = createRuleRow(rule);
-  rulesList.append(row);
-  if (!focusNameInput) {
-    return;
+const getDraftFilters = (listElement) => {
+  return [...listElement.querySelectorAll(".rule-row")]
+    .map(readDraftFilterRule)
+    .filter((rule) => rule !== null);
+};
+
+const syncFeedSummaryState = (cardElements) => {
+  const enabled = cardElements.summaryEnabledInput.checked;
+  cardElements.summaryPromptInput.disabled = !enabled;
+  cardElements.summaryPromptInput.classList.toggle("is-disabled", !enabled);
+};
+
+const readDraftFeedRule = (cardElement) => {
+  const cardElements = getFeedRuleElements(cardElement);
+  const filters = getDraftFilters(cardElements.filtersList);
+  const rule = {
+    name: cardElements.nameInput.value.trim(),
+    feed: cardElements.feedInput.value.trim(),
+    summaryEnabled: cardElements.summaryEnabledInput.checked,
+    summaryPrompt: cardElements.summaryEnabledInput.checked ? cardElements.summaryPromptInput.value.trim() : "",
+    filters,
+  };
+
+  const isEmpty =
+    rule.name === ""
+    && rule.feed === ""
+    && !rule.summaryEnabled
+    && rule.summaryPrompt === ""
+    && rule.filters.length === 0;
+
+  return isEmpty ? null : rule;
+};
+
+const createFeedRuleCard = (initialRule) => {
+  const rule = normalizeFeedRule(initialRule);
+  const card = feedRuleTemplate.content.firstElementChild.cloneNode(true);
+  const cardElements = getFeedRuleElements(card);
+  let canDrag = false;
+
+  cardElements.nameInput.value = rule.name;
+  cardElements.feedInput.value = rule.feed;
+  cardElements.summaryEnabledInput.checked = rule.summaryEnabled;
+  cardElements.summaryPromptInput.value = rule.summaryPrompt;
+  syncFeedSummaryState(cardElements);
+
+  setupSortableList(cardElements.filtersList, ".rule-row", () => {
+    updateSummary();
+    refreshDirtyState();
+  });
+
+  const appendFilterRow = (filterRule, shouldFocus) => {
+    const row = createFilterRow(filterRule, () => {});
+    cardElements.filtersList.append(row);
+    if (shouldFocus) {
+      row.querySelector(".rule-input-name")?.focus();
+    }
+  };
+
+  rule.filters.forEach((filterRule) => appendFilterRow(filterRule, false));
+
+  cardElements.addFilterButton.addEventListener("click", () => {
+    appendFilterRow({ match: "title" }, true);
+    updateSummary();
+    refreshDirtyState();
+  });
+
+  cardElements.summaryEnabledInput.addEventListener("change", () => {
+    syncFeedSummaryState(cardElements);
+    refreshDirtyState();
+  });
+
+  cardElements.reorderHandle.addEventListener("pointerdown", () => {
+    canDrag = true;
+  });
+
+  cardElements.deleteButton.addEventListener("click", () => {
+    const ruleName = cardElements.nameInput.value.trim() || "Untitled feed rule";
+    if (!window.confirm(`Delete "${ruleName}"?`)) {
+      return;
+    }
+
+    card.remove();
+    updateFeedRulesEmptyState();
+    updateSummary();
+    refreshDirtyState();
+  });
+
+  card.addEventListener("dragstart", (event) => {
+    if (event.target !== card)
+      return;
+
+    if (!canDrag) {
+      event.preventDefault();
+      return;
+    }
+
+    card.classList.add("is-dragging");
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", "");
+    }
+  });
+
+  card.addEventListener("pointerup", () => {
+    canDrag = false;
+  });
+  card.addEventListener("pointercancel", () => {
+    canDrag = false;
+  });
+  card.addEventListener("dragend", (event) => {
+    if (event.target !== card)
+      return;
+
+    canDrag = false;
+    card.classList.remove("is-dragging");
+  });
+
+  return card;
+};
+
+const updateGlobalFiltersEmptyState = () => {
+  updateListEmptyState(globalFiltersList, globalFiltersEmptyState, ".rule-row");
+};
+
+const updateFeedRulesEmptyState = () => {
+  updateListEmptyState(feedRulesList, feedRulesEmptyState, ".feed-rule-card");
+};
+
+const getDraftConfig = () => {
+  return {
+    globalFilters: getDraftFilters(globalFiltersList),
+    feeds: [...feedRulesList.querySelectorAll(".feed-rule-card")]
+      .map(readDraftFeedRule)
+      .filter((rule) => rule !== null),
+  };
+};
+
+const updateSummary = () => {
+  const config = getDraftConfig();
+  const feedFilterCount = config.feeds.reduce((total, feed) => total + feed.filters.length, 0);
+  const summaryEnabledCount = config.feeds.filter((feed) => feed.summaryEnabled).length;
+
+  rulesSummary.textContent =
+    `You have ${config.globalFilters.length} global filter(s), ${config.feeds.length} feed rule(s), ` +
+    `${feedFilterCount} feed-specific filter(s), and summaries enabled on ${summaryEnabledCount} feed(s)`;
+};
+
+const pageTitle = document.title;
+let savedRulesSnapshot = "";
+let isDirty = false;
+let canNavigate = false;
+let summaryDebounceHandle = 0;
+
+const markDirtyState = () => {
+  rulesForm.classList.toggle("is-dirty", isDirty);
+  document.title = isDirty ? `* ${pageTitle}` : pageTitle;
+};
+
+const refreshDirtyState = () => {
+  isDirty = JSON.stringify(getDraftConfig()) !== savedRulesSnapshot;
+  markDirtyState();
+};
+
+const allowNavigationTemporarily = () => {
+  canNavigate = true;
+  window.setTimeout(() => {
+    canNavigate = false;
+  }, 0);
+};
+
+const allowNavigationForSubmit = () => {
+  canNavigate = true;
+};
+
+const handleUnsafeNavigation = () => {
+  if (!isDirty || canNavigate) {
+    return true;
   }
 
-  const rowElements = getRuleRowElements(row);
-  rowElements.nameInput.focus();
+  const shouldLeave = window.confirm("You have unsaved rule changes. Leave without saving?");
+  if (shouldLeave) {
+    allowNavigationTemporarily();
+  }
+  return shouldLeave;
 };
 
-addRuleButton.addEventListener("click", () => {
-  appendRuleRow({ match: "title" }, true);
-  updateEmptyState();
+const scheduleSummaryUpdate = () => {
+  if (summaryDebounceHandle !== 0) {
+    window.clearTimeout(summaryDebounceHandle);
+  }
+
+  summaryDebounceHandle = window.setTimeout(() => {
+    summaryDebounceHandle = 0;
+    updateSummary();
+  }, 120);
+};
+
+const appendGlobalFilterRow = (rule, shouldFocus) => {
+  const row = createFilterRow(rule, updateGlobalFiltersEmptyState);
+  globalFiltersList.append(row);
+  updateGlobalFiltersEmptyState();
+  if (shouldFocus) {
+    row.querySelector(".rule-input-name")?.focus();
+  }
+};
+
+const appendFeedRuleCard = (rule, shouldFocus) => {
+  const card = createFeedRuleCard(rule);
+  feedRulesList.append(card);
+  updateFeedRulesEmptyState();
+  if (shouldFocus) {
+    card.querySelector(".feed-rule-input-name")?.focus();
+  }
+};
+
+addGlobalFilterButton.addEventListener("click", () => {
+  appendGlobalFilterRow({ match: "title" }, true);
+  updateSummary();
+  refreshDirtyState();
+});
+
+addFeedRuleButton.addEventListener("click", () => {
+  appendFeedRuleCard({}, true);
   updateSummary();
   refreshDirtyState();
 });
@@ -458,34 +645,23 @@ saveRulesButton.addEventListener("click", () => {
   rulesForm.requestSubmit();
 });
 
-rulesList.addEventListener("input", () => {
+rulesForm.addEventListener("input", () => {
   scheduleSummaryUpdate();
   refreshDirtyState();
 });
 
-rulesList.addEventListener("change", () => {
+rulesForm.addEventListener("change", () => {
   scheduleSummaryUpdate();
   refreshDirtyState();
 });
 
-rulesList.addEventListener("dragover", (event) => {
-  event.preventDefault();
-  const dragging = rulesList.querySelector(".rule-row.is-dragging");
-  if (!(dragging instanceof HTMLElement)) {
-    return;
-  }
-
-  const afterElement = getDragAfterElement(event.clientY);
-  if (!(afterElement instanceof HTMLElement)) {
-    rulesList.append(dragging);
-    return;
-  }
-
-  rulesList.insertBefore(dragging, afterElement);
+setupSortableList(globalFiltersList, ".rule-row", () => {
+  updateSummary();
+  refreshDirtyState();
 });
 
-rulesList.addEventListener("dragend", () => {
-  scheduleSummaryUpdate();
+setupSortableList(feedRulesList, ".feed-rule-card", () => {
+  updateSummary();
   refreshDirtyState();
 });
 
@@ -525,34 +701,73 @@ window.addEventListener("beforeunload", (event) => {
 });
 
 rulesForm.addEventListener("submit", (event) => {
-  const rules = getDraftRules();
+  const config = getDraftConfig();
 
-  for (let index = 0; index < rules.length; index++) {
-    const rule = rules[index];
+  for (let index = 0; index < config.globalFilters.length; index++) {
+    const rule = config.globalFilters[index];
     if (rule.name === "" || rule.regex === "") {
       event.preventDefault();
-      window.alert("Each rule requires a name and regex");
+      window.alert("Each global filter requires a name and regex");
       return;
     }
 
     const regexError = getRegexAnalysis(rule.regex).error;
     if (regexError !== null) {
       event.preventDefault();
-      window.alert(`Rule ${index + 1} has an invalid regex: ${regexError}`);
+      window.alert(`Global filter ${index + 1} has an invalid regex: ${regexError}`);
       return;
     }
   }
 
-  rulesJsonInput.value = JSON.stringify(rules);
+  const seenFeeds = new Set();
+  for (let index = 0; index < config.feeds.length; index++) {
+    const feedRule = config.feeds[index];
+    if (feedRule.name === "" || feedRule.feed === "") {
+      event.preventDefault();
+      window.alert(`Feed rule ${index + 1} requires both a name and feed`);
+      return;
+    }
+    if (!feedRule.summaryEnabled && feedRule.filters.length === 0) {
+      event.preventDefault();
+      window.alert(`Feed rule ${index + 1} must have at least one filter or summary enabled`);
+      return;
+    }
+
+    const normalizedFeed = feedRule.feed.toLowerCase();
+    if (seenFeeds.has(normalizedFeed)) {
+      event.preventDefault();
+      window.alert(`Feed rule ${index + 1} duplicates an existing feed`);
+      return;
+    }
+    seenFeeds.add(normalizedFeed);
+
+    for (let filterIndex = 0; filterIndex < feedRule.filters.length; filterIndex++) {
+      const rule = feedRule.filters[filterIndex];
+      if (rule.name === "" || rule.regex === "") {
+        event.preventDefault();
+        window.alert(`Feed rule ${index + 1}, filter ${filterIndex + 1} requires a name and regex`);
+        return;
+      }
+
+      const regexError = getRegexAnalysis(rule.regex).error;
+      if (regexError !== null) {
+        event.preventDefault();
+        window.alert(`Feed rule ${index + 1}, filter ${filterIndex + 1} has an invalid regex: ${regexError}`);
+        return;
+      }
+    }
+  }
+
+  rulesJsonInput.value = JSON.stringify(config);
   allowNavigationForSubmit();
 });
 
 const initialRules = parseInitialRules();
-if (initialRules.length === 0) {
-  updateEmptyState();
-} else {
-  initialRules.forEach((rule) => appendRuleRow(rule, false));
-}
+initialRules.globalFilters.forEach((rule) => appendGlobalFilterRow(rule, false));
+initialRules.feeds.forEach((rule) => appendFeedRuleCard(rule, false));
+
+updateGlobalFiltersEmptyState();
+updateFeedRulesEmptyState();
 
 document.querySelectorAll("[data-save-toast]").forEach((toast) => {
   const dismiss = () => {
@@ -569,5 +784,5 @@ document.querySelectorAll("[data-save-toast]").forEach((toast) => {
 });
 
 updateSummary();
-savedRulesSnapshot = JSON.stringify(getDraftRules());
+savedRulesSnapshot = JSON.stringify(getDraftConfig());
 markDirtyState();

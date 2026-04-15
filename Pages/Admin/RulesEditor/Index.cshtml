@@ -3,7 +3,7 @@
 @{
   ViewData["Title"] = "Rules";
 }
-<main class="pico">
+<main class="rules-editor-page">
   <div class="subpage-header">
     <a href="/admin" class="subpage-back-link" aria-label="Back to admin">
       <span class="subpage-back-icon" aria-hidden="true"></span>
@@ -37,33 +37,49 @@
   <form method="post" class="rules-form" id="rulesForm">
     @Html.AntiForgeryToken()
     <input type="hidden" id="RulesJson" name="RulesJson">
-    <div id="rulesList" class="rules-list">
-      <p id="rulesEmptyState" class="rules-empty" hidden>No rules yet. Add one to start filtering.</p>
-    </div>
-    <div class="rules-add-action">
-      <button type="button" id="addRuleButton" class="rules-add-button" aria-label="Add rule" title="Add rule">
-        <span class="rules-add-icon" aria-hidden="true"></span>
-      </button>
-    </div>
+
+    <section class="rules-section">
+      <div class="rules-section-header">
+        <h2>Global</h2>
+        <button type="button" id="addGlobalFilterButton" class="rules-add-button" aria-label="Add global filter"
+                title="Add global filter">
+          <span class="rules-add-icon" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div id="globalFiltersList" class="rules-list">
+        <p id="globalFiltersEmptyState" class="rules-empty" hidden>No global filters yet.</p>
+      </div>
+    </section>
+
+    <section class="rules-section">
+      <div class="rules-section-header">
+        <h2>Feed-Specific</h2>
+        <button type="button" id="addFeedRuleButton" class="rules-add-button" aria-label="Add feed rule"
+                title="Add feed rule">
+          <span class="rules-add-icon" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div id="feedRulesList" class="feed-rules-list">
+        <p id="feedRulesEmptyState" class="rules-empty" hidden>No feed rules yet.</p>
+      </div>
+    </section>
   </form>
-  <template id="ruleRowTemplate">
-    <article class="rule-row" draggable="true">
+
+  <template id="filterRowTemplate">
+    <div class="rule-row" draggable="true">
       <div class="rule-row-actions">
         <button type="button" class="rule-reorder-handle" aria-label="Drag to reorder" title="Drag to reorder">
           <span class="rule-reorder-icon" aria-hidden="true"></span>
         </button>
-        <button type="button" class="rule-delete" aria-label="Delete rule" title="Delete rule">
+        <div class="rule-row-actions-spacer" aria-hidden="true"></div>
+        <button type="button" class="rule-delete" aria-label="Delete filter" title="Delete filter">
           <span class="rule-delete-icon" aria-hidden="true"></span>
         </button>
       </div>
       <div class="rule-fields">
         <label class="rule-field">
-          <span class="rule-field-label">Rule</span>
+          <span class="rule-field-label">Name</span>
           <input type="text" class="rule-input-name" placeholder="Ads and Sponsors">
-        </label>
-        <label class="rule-field">
-          <span class="rule-field-label">Feed</span>
-          <input type="text" class="rule-input-feed" placeholder="Domain, partial URL or full feed URL (optional)">
         </label>
         <label class="rule-field rule-field-match">
           <span class="rule-field-label">Match</span>
@@ -105,7 +121,50 @@
           </div>
         </label>
       </div>
-    </article>
+    </div>
+  </template>
+
+  <template id="feedRuleTemplate">
+    <div class="feed-rule-card" draggable="true">
+      <div class="feed-rule-section feed-rule-top">
+        <div class="rule-row-actions feed-rule-top-actions">
+          <button type="button" class="feed-rule-reorder-handle" aria-label="Drag to reorder" title="Drag to reorder">
+            <span class="rule-reorder-icon" aria-hidden="true"></span>
+          </button>
+          <div class="rule-row-actions-spacer" aria-hidden="true"></div>
+          <button type="button" class="feed-rule-delete" aria-label="Delete feed rule" title="Delete feed rule">
+            <span class="rule-delete-icon" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="rule-fields">
+          <label class="rule-field">
+            <span class="rule-field-label">Name</span>
+            <input type="text" class="feed-rule-input-name" placeholder="Apple News">
+          </label>
+          <label class="rule-field">
+            <span class="rule-field-label">Feed</span>
+            <input type="text" class="feed-rule-input-feed" placeholder="Domain, partial URL or full feed URL">
+          </label>
+          <label class="rule-field feed-summary-field">
+            <span class="rule-field-label">Summarize</span>
+            <div class="feed-summary-controls">
+              <input type="checkbox" class="feed-rule-input-summary-enabled" aria-label="Enable summaries"
+                     title="Enable summaries">
+              <input type="text" class="feed-rule-input-summary-prompt"
+                     placeholder="@Model.SummaryPromptPlaceholder">
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="feed-rule-section feed-rule-bottom">
+        <div class="rule-fields">
+          <div class="rules-list feed-rule-filters-list"></div>
+          <button type="button" class="feed-rule-add-filter-button" aria-label="Add feed filter" title="Add feed filter">
+            Add Filter
+          </button>
+        </div>
+      </div>
+    </div>
   </template>
 </main>
 <script id="initialRulesData" type="application/json">@Html.Raw(Model.InitialRulesJson)</script>

@@ -10,10 +10,9 @@ public class RegexFilter : FilterBase, IFilter
         _logger = logger;
     }
 
-    public bool Keep(XElement item, Rule rule)
+    public bool Keep(XElement item, FilterRule rule)
     {
-        // Rule does not apply if there's no regex
-        if (rule.Regex == null)
+        if (string.IsNullOrWhiteSpace(rule.Regex))
             return true;
 
         bool exclude = false;
@@ -32,14 +31,14 @@ public class RegexFilter : FilterBase, IFilter
         return !exclude;
     }
 
-    private bool Match(string kind, string title, Rule rule, string text)
+    private bool Match(string kind, string title, FilterRule rule, string text)
     {
         var options = rule.CaseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase;
         if (!Regex.IsMatch(text, rule.Regex, options))
             return false;
 
         _logger.LogDebug(
-            $"Excluded '{title}' from feed '{rule.Feed}' based on rule '{rule.Name}' due to {kind} match with regex '{rule.Regex}'"
+            $"Excluded '{title}' based on rule '{rule.Name}' due to {kind} match with regex '{rule.Regex}'"
         );
         return true;
     }

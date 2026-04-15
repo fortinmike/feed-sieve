@@ -18,6 +18,11 @@ Dictionary<string, string?> BuildEnvConfigOverrides()
     AddOverride("Auth:Username", "AUTH_USERNAME");
     AddOverride("Auth:Password", "AUTH_PASSWORD");
     AddOverride("Secret", "SECRET");
+    AddOverride("OpenAIAPI:BaseUrl", "OPENAI_API_BASE_URL");
+    AddOverride("OpenAIAPI:ApiKey", "OPENAI_API_KEY");
+    AddOverride("OpenAIAPI:Model", "OPENAI_API_MODEL");
+    AddOverride("Summarization:DefaultSummaryPrompt", "SUMMARIZATION_DEFAULT_SUMMARY_PROMPT");
+    AddOverride("Summarization:MinimumContentLength", "SUMMARIZATION_MINIMUM_CONTENT_LENGTH");
 
     return overrides;
 }
@@ -69,6 +74,7 @@ builder
                 UseCookies = false
             }
     );
+builder.Services.AddHttpClient("openai-api", client => client.Timeout = TimeSpan.FromSeconds(60));
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();
 builder.Services.AddLogging();
@@ -86,11 +92,18 @@ var consecutiveErrorsToPublishFailure = builder
 builder.Services.AddSingleton<ICache>(
     isCacheEnabled ? new Cache(new DirectoryInfo("./storage/cache")) : new NullCache()
 );
+builder.Services.AddSingleton(new SummaryCache(new DirectoryInfo("./storage/summaries")));
 builder.Services.AddSingleton(
     new FailureStore(new DirectoryInfo("./storage/failures"), consecutiveErrorsToPublishFailure)
 );
+builder.Services.AddSingleton(builder.Configuration.GetSection("OpenAIAPI").Get<OpenAIAPIOptions>() ?? new OpenAIAPIOptions());
+builder.Services.AddSingleton(
+    builder.Configuration.GetSection("Summarization").Get<SummarizationOptions>() ?? new SummarizationOptions()
+);
 builder.Services.AddSingleton<UpstreamFeedClient>();
 builder.Services.AddSingleton<FeedDiscoveryService>();
+builder.Services.AddSingleton<ILLMClient, OpenAIAPIClient>();
+builder.Services.AddSingleton<ArticleSummarizer>();
 builder.Services.AddScoped<Processor>();
 builder.Services.AddScoped<IFilter, RegexFilter>();
 builder.Services.AddSingleton<FilterUrlBuilder>();
@@ -146,8 +159,13 @@ app.MapControllers();
 app.MapRazorPages();
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
+var defaultRules = Rules.Load("rules.default.yaml");
 logger.LogInformation($"Application started!");
-logger.LogInformation($"Default rules contain {Rules.Load("rules.default.yaml").Count} entries.");
+logger.LogInformation(
+    "Default rules contain {GlobalFilterCount} global filters and {FeedCount} feed configs",
+    defaultRules.GlobalFilters.Count,
+    defaultRules.Feeds.Count
+);
 logger.LogInformation("API Secret Authentication: Enabled");
 logger.LogInformation("Admin Authentication: {State}", isAdminAuthEnabledValue ? "Enabled" : "Disabled");
 logger.LogInformation("Cache: {State}", isCacheEnabled ? "Enabled" : "Disabled");

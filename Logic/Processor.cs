@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Web;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.WebUtilities;
 
@@ -6,34 +7,52 @@ public class Processor
 {
     private readonly ILogger<Processor> _logger;
     private readonly IEnumerable<IFilter> _filters;
+    private readonly SummaryCache _summaryCache;
+    private readonly ArticleSummarizer _summarizer;
 
-    public Processor(ILogger<Processor> logger, IEnumerable<IFilter> filters)
+    public Processor(
+        ILogger<Processor> logger,
+        IEnumerable<IFilter> filters,
+        SummaryCache summaryCache,
+        ArticleSummarizer summarizer
+    )
     {
         _logger = logger;
         _filters = filters;
+        _summaryCache = summaryCache;
+        _summarizer = summarizer;
     }
 
     #region Public API
 
-    public XDocument Process(XDocument originalDocument, List<Rule> rules, string feedUrl)
+    public async Task<XDocument> Process(
+        XDocument originalDocument,
+        RulesConfig rules,
+        string feedUrl,
+        CancellationToken cancellationToken
+    )
     {
-        // Loading rules is a very fast operation and doing it here ensures
-        // that we can modify them and they will be applied instantly.
-        var rulesForFeed = rules.Where(r => RuleAppliesToFeed(r.Feed, feedUrl)).ToList();
+        var feedRule = GetFeedRule(rules.Feeds, feedUrl);
+        var filterRules = rules.GlobalFilters.Concat(feedRule?.Filters ?? []).ToList();
 
-        _logger.LogInformation($"Found {rulesForFeed.Count} rules matching feed {feedUrl}:");
-        rulesForFeed.ForEach(r => _logger.LogDebug($"- {r.Name}"));
+        _logger.LogInformation(
+            "Found {FilterRuleCount} filter rules for {FeedUrl} and summary is {SummaryState}",
+            filterRules.Count,
+            feedUrl,
+            feedRule?.Summary is null ? "disabled" : "enabled"
+        );
+        filterRules.ForEach(rule => _logger.LogDebug("- {RuleName}", rule.Name));
 
         var itemsBefore = GetItems(originalDocument).ToList();
         itemsBefore.ForEach(PrefixYouTubeShortTitles);
-        var filteredItems = rulesForFeed.Aggregate(itemsBefore, FilterWithRule);
+        var filteredItems = filterRules.Aggregate(itemsBefore, FilterWithRule);
+        var summarizedItems = await SummarizeItemsAsync(filteredItems, feedRule, feedUrl, cancellationToken);
 
-        // Create a new document and modify it
         var modifiedDocument = new XDocument(originalDocument);
-        ReplaceItemsInDocument(modifiedDocument, filteredItems);
+        ReplaceItemsInDocument(modifiedDocument, summarizedItems);
 
         _logger.LogInformation(
-            $"Filtered feed '{feedUrl}' (Before: {itemsBefore.Count}, After: {filteredItems.Count})"
+            $"Processed feed '{feedUrl}' (Before: {itemsBefore.Count}, After: {summarizedItems.Count})"
         );
 
         return modifiedDocument;
@@ -43,12 +62,22 @@ public class Processor
 
     #region Rule Matching
 
-    private bool RuleAppliesToFeed(string? ruleFeed, string feedUrl)
+    private FeedRule? GetFeedRule(List<FeedRule> rules, string feedUrl)
     {
-        // When a rule has no feed specified, then it applies to all feeds
-        if (ruleFeed == null)
-            return true;
+        var matchingRules = rules.Where(rule => RuleAppliesToFeed(rule.Feed, feedUrl)).ToList();
+        if (matchingRules.Count <= 1)
+            return matchingRules.FirstOrDefault();
 
+        _logger.LogWarning(
+            "Found {Count} matching feed configs for {FeedUrl}; using the first one",
+            matchingRules.Count,
+            feedUrl
+        );
+        return matchingRules[0];
+    }
+
+    private bool RuleAppliesToFeed(string ruleFeed, string feedUrl)
+    {
         var normalizedRule = NormalizeUri(ruleFeed);
         var normalizedFeed = NormalizeUri(feedUrl);
         if (normalizedRule == null || normalizedFeed == null)
@@ -178,9 +207,69 @@ public class Processor
         }
     }
 
-    private List<XElement> FilterWithRule(List<XElement> items, Rule rule)
+    private List<XElement> FilterWithRule(List<XElement> items, FilterRule rule)
     {
         return items.Where(i => _filters.All(filter => filter.Keep(i, rule))).ToList();
+    }
+
+    private async Task<List<XElement>> SummarizeItemsAsync(
+        List<XElement> items,
+        FeedRule? feedRule,
+        string feedUrl,
+        CancellationToken cancellationToken
+    )
+    {
+        if (feedRule?.Summary is null)
+            return items;
+
+        if (!_summarizer.IsConfigured)
+            return items;
+
+        var prompt = GetSummaryPrompt(feedRule.Summary);
+        if (string.IsNullOrWhiteSpace(prompt))
+            return items;
+
+        var summarizedItems = new List<XElement>(items.Count);
+        foreach (var item in items)
+        {
+            summarizedItems.Add(await SummarizeItemAsync(item, feedUrl, prompt, cancellationToken));
+        }
+
+        return summarizedItems;
+    }
+
+    private async Task<XElement> SummarizeItemAsync(
+        XElement item,
+        string feedUrl,
+        string prompt,
+        CancellationToken cancellationToken
+    )
+    {
+        var content = GetContent(item);
+        if (string.IsNullOrWhiteSpace(content))
+            return item;
+
+        var contentText = HtmlContentTextExtractor.Extract(content);
+        if (contentText.Length < _summarizer.MinimumContentLength)
+            return item;
+
+        var itemKey = GetItemKey(item);
+        var hash = $"{content}\n{prompt}".Hash();
+        var summary = _summaryCache.Get(feedUrl, itemKey, hash);
+        if (summary is null)
+        {
+            summary = await _summarizer.SummarizeAsync(GetTitle(item), contentText, prompt, cancellationToken);
+            if (summary is null)
+                return item;
+
+            summary = NormalizeSummaryHtml(summary);
+            _summaryCache.Set(feedUrl, itemKey, hash, summary);
+        }
+
+        if (!TryPrependSummary(item, summary, content))
+            return item;
+
+        return item;
     }
 
     #endregion
@@ -204,11 +293,96 @@ public class Processor
 
     #endregion
 
+    #region Summary Rewriting
+
+    private string GetSummaryPrompt(SummaryRule summary)
+    {
+        return string.IsNullOrWhiteSpace(summary.Prompt) ? _summarizer.DefaultPrompt : summary.Prompt.Trim();
+    }
+
+    private string GetItemKey(XElement item)
+    {
+        var key = GetValue(item, "guid");
+        if (!string.IsNullOrWhiteSpace(key))
+            return key;
+
+        key = GetValue(item, "id", Constants.AtomNamespace);
+        if (!string.IsNullOrWhiteSpace(key))
+            return key;
+
+        key = GetLink(item);
+        if (!string.IsNullOrWhiteSpace(key))
+            return key;
+
+        key = GetTitle(item);
+        return string.IsNullOrWhiteSpace(key) ? item.ToString(SaveOptions.DisableFormatting) : key;
+    }
+
+    private bool TryPrependSummary(XElement item, string summaryHtml, string originalContent)
+    {
+        var rewrittenContent = $"{summaryHtml}<hr>{originalContent}";
+
+        var rssContent = item.Element(XName.Get("encoded", "http://purl.org/rss/1.0/modules/content/"));
+        if (rssContent != null)
+        {
+            rssContent.ReplaceNodes(new XCData(rewrittenContent));
+            return true;
+        }
+
+        var rssDescription = item.Element("description");
+        if (rssDescription != null)
+        {
+            rssDescription.ReplaceNodes(new XCData(rewrittenContent));
+            return true;
+        }
+
+        var atomContent = item.Element(XName.Get("content", Constants.AtomNamespace));
+        if (atomContent != null)
+        {
+            if (IsAtomXhtml(atomContent))
+                return false;
+
+            atomContent.SetAttributeValue("type", "html");
+            atomContent.Value = rewrittenContent;
+            return true;
+        }
+
+        var atomSummary = item.Element(XName.Get("summary", Constants.AtomNamespace));
+        if (atomSummary != null)
+        {
+            if (IsAtomXhtml(atomSummary))
+                return false;
+
+            atomSummary.SetAttributeValue("type", "html");
+            atomSummary.Value = rewrittenContent;
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool IsAtomXhtml(XElement element)
+    {
+        var type = (string?)element.Attribute("type");
+        return string.Equals(type, "xhtml", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string NormalizeSummaryHtml(string summary)
+    {
+        var trimmed = summary.Trim();
+        if (trimmed.Contains('<') && trimmed.Contains('>'))
+            return trimmed;
+
+        return $"<p>{HttpUtility.HtmlEncode(trimmed)}</p>";
+    }
+
+    #endregion
+
     #region YouTube Short Tagging
 
     private void PrefixYouTubeShortTitles(XElement item)
     {
-        var linkUrl = GetTitleUrl(item);
+        var linkUrl = GetLink(item);
         if (!IsYouTubeShortUrl(linkUrl))
             return;
 
@@ -228,7 +402,7 @@ public class Processor
         return item.Elements().FirstOrDefault(e => e.Name.LocalName == "title");
     }
 
-    private string GetTitleUrl(XElement item)
+    private string GetLink(XElement item)
     {
         var linkElement = item.Elements()
             .Where(e => e.Name.LocalName == "link")
@@ -244,6 +418,37 @@ public class Processor
             return href;
 
         return linkElement.Value;
+    }
+
+    private string GetValue(XElement parent, string localName, string? ns = null)
+    {
+        return (string?)parent.Element(ns is null ? localName : XName.Get(localName, ns)) ?? "";
+    }
+
+    private string GetTitle(XElement item)
+    {
+        var title = GetValue(item, "title");
+        if (!string.IsNullOrWhiteSpace(title))
+            return title;
+
+        return GetValue(item, "title", Constants.AtomNamespace);
+    }
+
+    private string GetContent(XElement item)
+    {
+        var content = GetValue(item, "encoded", "http://purl.org/rss/1.0/modules/content/");
+        if (!string.IsNullOrWhiteSpace(content))
+            return content;
+
+        content = GetValue(item, "description");
+        if (!string.IsNullOrWhiteSpace(content))
+            return content;
+
+        content = GetValue(item, "content", Constants.AtomNamespace);
+        if (!string.IsNullOrWhiteSpace(content))
+            return content;
+
+        return GetValue(item, "summary", Constants.AtomNamespace);
     }
 
     private bool IsYouTubeShortUrl(string url)
