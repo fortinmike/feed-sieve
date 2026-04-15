@@ -229,6 +229,12 @@ public class Processor
         if (string.IsNullOrWhiteSpace(prompt))
             return items;
 
+        _logger.LogInformation(
+            "Starting summarization for {ItemCount} item(s) in {FeedUrl}",
+            items.Count,
+            feedUrl
+        );
+
         var summarizedItems = new List<XElement>(items.Count);
         foreach (var item in items)
         {
@@ -258,7 +264,10 @@ public class Processor
         var summary = _summaryCache.Get(feedUrl, itemKey, hash);
         if (summary is null)
         {
-            summary = await _summarizer.SummarizeAsync(GetTitle(item), contentText, prompt, cancellationToken);
+            var title = GetTitle(item);
+            _logger.LogDebug("Starting summarization for item '{ItemTitle}'", title);
+
+            summary = await _summarizer.SummarizeAsync(title, contentText, prompt, cancellationToken);
             if (summary is null)
                 return item;
 

@@ -61,13 +61,18 @@ public class OpenAIAPIClient : ILLMClient
 
             return ExtractSummary(responseBody);
         }
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex, "OpenAIAPI summary request timed out for '{Title}'", title);
+            return null;
+        }
         catch (OperationCanceledException)
         {
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "OpenAIAPI summary request failed");
+            _logger.LogError(ex, "OpenAIAPI summary request failed for '{Title}'", title);
             return null;
         }
     }
